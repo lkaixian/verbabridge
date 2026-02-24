@@ -1,0 +1,89 @@
+{
+  "is_ambiguous": true,
+  "results": [
+    {
+      "title": "Literal: Eye (Anatomy)",
+      "description": "The sensory organ of vision. In the modern brainrot era, it is the primary tool used for delivering a 'Bombastic Side-eye' or a 'Criminal Offensive Side-eye' when someone says something incredibly mid or sus. Essential for looksmaxxing and maintaining eye contact to establish dominance.",
+      "translations": {
+        "hokkien": {
+          "hanzi": "目",
+          "romanization": "bak1",
+          "english_meaning": "eye",
+          "tone": "low/short"
+        },
+        "cantonese": {
+          "hanzi": "眼",
+          "romanization": "ngaan5",
+          "english_meaning": "eye",
+          "tone": "rising"
+        },
+        "hakka": {
+          "hanzi": "眼",
+          "romanization": "ngien",
+          "english_meaning": "eye",
+          "tone": "falling"
+        },
+        "hainan": {
+          "hanzi": "目",
+          "romanization": "bak",
+          "english_meaning": "eye",
+          "tone": "low"
+        },
+        "malay": {
+          "script": "Mata",
+          "romanization": "ma-ta",
+          "english_meaning": "eye",
+          "tone": "neutral"
+        },
+        "kelate": {
+          "script": "Mato",
+          "romanization": "ma-to",
+          "english_meaning": "eye",
+          "tone": "flat/nasal"
+        }
+      }
+    },
+    {
+      "title": "Malaysian Slang: Mata (The Cops)",
+      "description": "Derived from 'Mata-mata'. Refers to the police, the feds, the po-po, or the 12. If you are 'rempit-ing' on your kapchai and see the mata, you better skedaddle or you're cooked. It's an L if they catch you without a license. Absolute buzzkill for the vibes.",
+      "translations": {
+        "hokkien": {
+          "hanzi": "警察",
+          "romanization": "keng4-chat3",
+          "english_meaning": "police",
+          "tone": "high-mid"
+        },
+        "cantonese": {
+          "hanzi": "差佬",
+          "romanization": "caai1 lou2",
+          "english_meaning": "cops/feds",
+          "tone": "high-rising"
+        },
+        "hakka": {
+          "hanzi": "警察",
+          "romanization": "gin-chat",
+          "english_meaning": "police",
+          "tone": "high-low"
+        },
+        "hainan": {
+          "hanzi": "警察",
+          "romanization": "ging-cat",
+          "english_meaning": "police",
+          "tone": "high"
+        },
+        "malay": {
+          "script": "Polis",
+          "romanization": "po-lis",
+          "english_meaning": "police",
+          "tone": "neutral"
+        },
+        "kelate": {
+          "script": "Polih",
+          "romanization": "po-lih",
+          "english_meaning": "police",
+          "tone": "nasal/flat"
+        }
+      }
+    }
+  ]
+}

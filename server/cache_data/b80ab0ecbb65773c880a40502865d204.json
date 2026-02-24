@@ -1,0 +1,47 @@
+{
+  "is_ambiguous": false,
+  "results": [
+    {
+      "title": "Gen Alpha Brainrot: Skibidi Toilet",
+      "description": "The ultimate symbol of Gen Alpha's digital descent. Originally a Source Filmmaker (SFM) animation by DaFuq!?Boom! featuring a human head emerging from a toilet singing a mashup of 'Give It To Me' and 'Dom Dom Yes Yes'. It has evolved from a surreal meme into a massive lore-heavy war between 'Toilets' and 'Hardware-Heads' (Cameramen, Speakermen). In slang, 'Skibidi' is often used as a meaningless prefix or suffix to denote that something is 'evil', 'weird', or just 'brainrot'.",
+      "translations": {
+        "hokkien": {
+          "hanzi": "疯马桶",
+          "romanization": "hong1 be4-thang4",
+          "english_meaning": "Crazy/Insane Toilet",
+          "tone": "Siao (High), Be (Rising), Thong (Falling)"
+        },
+        "cantonese": {
+          "hanzi": "黐線廁所",
+          "romanization": "Ci sin ci so",
+          "english_meaning": "Crazy/Short-circuited Toilet",
+          "tone": "Ci (1), Sin (3), Ci (3), So (2)"
+        },
+        "hakka": {
+          "hanzi": "癫屎坑",
+          "romanization": "Dien si-khang",
+          "english_meaning": "Mad Latrine/Toilet",
+          "tone": "Dien (Level), Si (High), Khang (Level)"
+        },
+        "hainan": {
+          "hanzi": "癫水坑",
+          "romanization": "Din sui-khang",
+          "english_meaning": "Crazy Water-pit (Toilet)",
+          "tone": "Din (High), Sui (Low), Khang (High)"
+        },
+        "malay": {
+          "script": "Tandas Merepek / Tandas Skibidi",
+          "romanization": "Tandas Merepek",
+          "english_meaning": "Nonsensical/Gibberish Toilet",
+          "tone": "Neutral"
+        },
+        "kelate": {
+          "script": "Jambé Gilo",
+          "romanization": "Jambé Gilô",
+          "english_meaning": "Crazy Toilet",
+          "tone": "Glottal stop on 'be', rising on 'lo'"
+        }
+      }
+    }
+  ]
+}

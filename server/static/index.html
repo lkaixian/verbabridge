@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VerbaBridge Debug Console v2.0</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --accent: #38bdf8;
+        --text: #f8fafc;
+        --success: #22c55e;
+        --warn: #f59e0b;
+        --danger: #ef4444;
+        --border: #334155;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* --- LAYOUT --- */
+      .console-wrapper {
+        width: 100%;
+        max-width: 1000px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
+      }
+      .header {
+        background: #020617;
+        padding: 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        background: linear-gradient(90deg, #38bdf8, #818cf8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      /* --- TABS --- */
+      .mode-tabs {
+        display: flex;
+        background: #0f172a;
+        padding: 10px 20px 0;
+        gap: 5px;
+        border-bottom: 1px solid var(--border);
+      }
+      .mode-tab {
+        padding: 12px 20px;
+        color: #64748b;
+        cursor: pointer;
+        border-radius: 8px 8px 0 0;
+        font-weight: 600;
+        transition: 0.2s;
+        border: 1px solid transparent;
+      }
+      .mode-tab:hover {
+        color: white;
+        background: #1e293b;
+      }
+      .mode-tab.active {
+        background: var(--card);
+        color: var(--accent);
+        border: 1px solid var(--border);
+        border-bottom: 1px solid var(--card);
+        margin-bottom: -1px;
+      }
+
+      /* --- INPUTS --- */
+      .controls {
+        padding: 30px;
+      }
+      .input-section {
+        display: none;
+        animation: fadeIn 0.3s;
+      }
+      .input-section.active {
+        display: block;
+      }
+
+      input[type="text"],
+      select {
+        width: 100%;
+        padding: 15px;
+        background: #0f172a;
+        border: 1px solid var(--border);
+        color: white;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+        font-family: "Fira Code", monospace;
+        box-sizing: border-box;
+      }
+      .action-btn {
+        width: 100%;
+        padding: 15px;
+        background: var(--accent);
+        color: #0f172a;
+        border: none;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .action-btn:hover {
+        background: #7dd3fc;
+        transform: translateY(-2px);
+      }
+
+      /* --- TERMINAL & CARDS --- */
+      .terminal {
+        background: #020617;
+        border-top: 1px solid var(--border);
+        padding: 20px;
+        font-family: "Fira Code", monospace;
+        font-size: 0.85rem;
+        height: 300px;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+      }
+      .log-entry {
+        margin-bottom: 8px;
+        padding-left: 10px;
+        border-left: 2px solid transparent;
+      }
+      .log-info {
+        border-color: #94a3b8;
+        color: #94a3b8;
+      }
+      .log-success {
+        border-color: var(--success);
+        color: var(--success);
+      }
+      .log-error {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+
+      /* --- RIZZETA CARD --- */
+      .rizzeta-card {
+        background: #1e293b;
+        border-left: 4px solid #38bdf8;
+        padding: 16px;
+        margin: 12px 0;
+        border-radius: 6px;
+        font-family: "Inter", sans-serif;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+
+      /* --- OCR COMPARISON CONTAINER --- */
+      .comparison-container {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+      }
+      .img-box {
+        flex: 1;
+        min-width: 250px;
+        background: black;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+      }
+      .img-box img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .img-label {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: bold;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="console-wrapper">
+      <div class="header">
+        <h1>
+          VerbaBridge
+          <span style="color: white; font-weight: 300">// VISUALIZER</span>
+        </h1>
+        <div
+          style="
+            font-size: 0.8rem;
+            color: var(--success);
+            border: 1px solid var(--success);
+            padding: 5px 10px;
+            border-radius: 20px;
+          "
+        >
+          ● SYSTEM READY
+        </div>
+      </div>
+
+      <div class="mode-tabs">
+        <div class="mode-tab active" onclick="ui.switchTab('translate', this)">
+          Translate
+        </div>
+        <div class="mode-tab" onclick="ui.switchTab('style', this)">
+          Style Transfer
+        </div>
+        <div class="mode-tab" onclick="ui.switchTab('ocr', this)">
+          Visual Remix
+        </div>
+      </div>
+
+      <div class="controls">
+        <div id="sec-translate" class="input-section active">
+          <input
+            type="text"
+            id="inp-translate"
+            placeholder="Enter word (e.g. 'Mata', 'Payung', 'Skibidi')..."
+          />
+          <button class="action-btn" onclick="api.runTranslate()">
+            Analyze Semantics
+          </button>
+        </div>
+
+        <div id="sec-style" class="input-section">
+          <input
+            type="text"
+            id="inp-style-text"
+            placeholder="Enter standard English text..."
+          />
+          <select id="inp-style-mode">
+            <option value="Gen Alpha">Gen Alpha (Brainrot)</option>
+            <option value="Ah Beng (Penang)">Ah Beng (Hokkien/Manglish)</option>
+            <option value="Mak Cik (Gossip)">Mak Cik (Malay Gossip)</option>
+            <option value="Corporate Wayang">Corporate Speak</option>
+          </select>
+          <button class="action-btn" onclick="api.runStyle()">
+            Rewrite Vibe
+          </button>
+        </div>
+
+        <div id="sec-ocr" class="input-section">
+          <div style="display: flex; gap: 10px; margin-bottom: 15px">
+            <input
+              type="file"
+              id="inp-file"
+              accept="image/*"
+              style="
+                flex: 2;
+                padding: 10px;
+                background: #0f172a;
+                border: 1px solid #334155;
+                color: white;
+              "
+            />
+            <select id="inp-ocr-style" style="flex: 1; margin-bottom: 0">
+              <option value="Gen Alpha">To Gen Alpha</option>
+              <option value="Ah Beng (Penang)">To Hokkien</option>
+              <option value="Malay Slang">To Malay</option>
+            </select>
+          </div>
+          <button class="action-btn" onclick="api.runOCR()">
+            Remix Reality
+          </button>
+        </div>
+      </div>
+
+      <div id="terminal" class="terminal">
+        <div class="log-entry log-info">
+          > VerbaBridge UI v2.0 Initialized. Waiting for input...
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- UI CONTROLLER ---
+      const ui = {
+        terminal: document.getElementById("terminal"),
+
+        log: (msg, type = "info") => {
+          const div = document.createElement("div");
+          div.className = `log-entry log-${type}`;
+          div.innerHTML = `> ${msg}`;
+          ui.terminal.appendChild(div);
+          ui.terminal.scrollTop = ui.terminal.scrollHeight;
+        },
+
+        renderCard: (title, content, subtext) => {
+          const card = document.createElement("div");
+          card.className = "rizzeta-card";
+          card.innerHTML = `
+                    <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                        <i class="fa-solid fa-microscope" style="color: #38bdf8;"></i> ${title}
+                    </div>
+                    <div style="font-size: 1.1rem; color: white; margin-bottom: 12px; font-weight: 600; line-height: 1.4;">"${content}"</div>
+                    <div style="background: rgba(56, 189, 248, 0.1); color: #7dd3fc; padding: 10px; font-size: 0.85rem; border-radius: 6px; font-family: 'Fira Code', monospace;">
+                        ${subtext}
+                    </div>
+                `;
+          ui.terminal.appendChild(card);
+          ui.terminal.scrollTop = ui.terminal.scrollHeight;
+        },
+
+        renderComparison: (originalSrc, remixedSrc) => {
+          const container = document.createElement("div");
+          container.className = "comparison-container";
+          container.innerHTML = `
+                    <div class="img-box">
+                        <span class="img-label">ORIGINAL</span>
+                        <img src="${originalSrc}">
+                    </div>
+                    <div class="img-box">
+                        <span class="img-label" style="background:#22c55e;">REMIXED</span>
+                        <img src="${remixedSrc}">
+                    </div>
+                `;
+          ui.terminal.appendChild(container);
+          ui.terminal.scrollTop = ui.terminal.scrollHeight;
+        },
+
+        switchTab: (mode, tabElement) => {
+          document
+            .querySelectorAll(".mode-tab")
+            .forEach((t) => t.classList.remove("active"));
+          tabElement.classList.add("active");
+          document
+            .querySelectorAll(".input-section")
+            .forEach((s) => s.classList.remove("active"));
+          document.getElementById(`sec-${mode}`).classList.add("active");
+          ui.log(`Mode Switched: ${mode.toUpperCase()}`);
+        },
+      };
+
+      // --- API CONTROLLER ---
+      const api = {
+        runTranslate: async () => {
+          const text = document.getElementById("inp-translate").value.trim();
+          if (!text) return ui.log("Input empty!", "error");
+
+          ui.log(`Analyzing "${text}"...`);
+          try {
+            const res = await fetch("/process_text", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text }),
+            });
+            const data = await res.json();
+
+            if (data.results) {
+              data.results.forEach((r) => {
+                // Show first dialect translation as example
+                const firstKey = Object.keys(r.translations)[0];
+                const trans = r.translations[firstKey];
+                ui.renderCard(
+                  r.title,
+                  r.description,
+                  `Translation (${firstKey}): ${trans.script || trans.hanzi} (${trans.english_meaning})`,
+                );
+              });
+              ui.log("Analysis Complete.", "success");
+            }
+          } catch (e) {
+            ui.log(e.message, "error");
+          }
+        },
+
+        runStyle: async () => {
+          const text = document.getElementById("inp-style-text").value;
+          const style = document.getElementById("inp-style-mode").value;
+          if (!text) return ui.log("Input empty!", "error");
+
+          ui.log(`Converting to ${style}...`);
+          try {
+            const res = await fetch("/translate_style", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text, style }),
+            });
+            const data = await res.json();
+            if (data.translated_text) {
+              ui.renderCard(
+                "Rizzeta Style Transfer",
+                data.translated_text,
+                data.explanation,
+              );
+              ui.log("Style Transfer Successful.", "success");
+            }
+          } catch (e) {
+            ui.log(e.message, "error");
+          }
+        },
+
+        runOCR: async () => {
+          const fileInput = document.getElementById("inp-file");
+          const style = document.getElementById("inp-ocr-style").value;
+
+          if (!fileInput.files[0])
+            return ui.log("Select an image first!", "error");
+
+          const formData = new FormData();
+          formData.append("file", fileInput.files[0]);
+          formData.append("style", style);
+
+          // Create a temporary URL for the original image to display immediately
+          const originalUrl = URL.createObjectURL(fileInput.files[0]);
+
+          ui.log(`Scanning & Remixing to ${style}... (This may take 5s)`);
+
+          try {
+            const res = await fetch("/process_image", {
+              method: "POST",
+              body: formData,
+            });
+            const data = await res.json();
+
+            if (data.remixed_image) {
+              ui.log(`Original Text: "${data.original_text}"`);
+              ui.log(`New Text: "${data.translated_text}"`);
+
+              // Render Side-by-Side Comparison
+              ui.renderComparison(originalUrl, data.remixed_image);
+              ui.log("Visual Remix Complete.", "success");
+            } else {
+              ui.log("OCR Failed: " + JSON.stringify(data), "error");
+            }
+          } catch (e) {
+            ui.log(e.message, "error");
+          }
+        },
+      };
+    </script>
+  </body>
+</html>

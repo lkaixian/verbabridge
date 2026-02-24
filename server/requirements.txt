@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+google-genai
+taibun
+dotenv
+pillow
+python-multipart
+firebase-admin
+qrcode[pil]
