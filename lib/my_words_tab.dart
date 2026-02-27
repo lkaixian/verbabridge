@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'services/api_service.dart';
+import 'services/auth_service.dart';
 
 class MyWordsTab extends StatefulWidget {
   const MyWordsTab({super.key});
@@ -8,39 +11,128 @@ class MyWordsTab extends StatefulWidget {
 }
 
 class _MyWordsTabState extends State<MyWordsTab> {
-  // Dummy saved words — will eventually come from Firestore
-  final List<Map<String, String>> _savedWords = [
-    {
-      'word': 'Tapau',
-      'analogy':
-          'It is like ordering takeaway — imagine pointing at your '
-          'favourite Char Kuey Teow and saying "pack it up, I am '
-          'bringing this home to enjoy later!"',
-      'emoji': '🥡',
-      'savedDate': '28 Feb 2026',
-    },
-    {
-      'word': 'Shiok',
-      'analogy':
-          'Think of biting into a perfectly crispy Roti Canai dipped '
-          'in warm dhal on a rainy morning — that feeling of pure '
-          'satisfaction is "shiok".',
-      'emoji': '😋',
-      'savedDate': '27 Feb 2026',
-    },
-    {
-      'word': 'Jio',
-      'analogy':
-          'It is like when your neighbour knocks on your door and '
-          'says "Come lah, we go makan!" — a friendly invitation '
-          'to join in on something fun.',
-      'emoji': '🤝',
-      'savedDate': '26 Feb 2026',
-    },
-  ];
+  List<Map<String, dynamic>> _savedWords = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchWords();
+  }
+
+  Future<void> _fetchWords() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final userId = user?.uid ?? 'guest';
+
+      if (AuthService.isGuest.value) {
+        // Guests see a prompt to sign in
+        setState(() {
+          _savedWords = [];
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final words = await ApiService.getWords(userId);
+      if (!mounted) return;
+
+      setState(() {
+        _savedWords = words;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Guest mode check
+    if (AuthService.isGuest.value) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline, size: 80, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            const Text(
+              "Sign in to save words",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Your vocabulary book is stored in the cloud.\nSign in to start saving words!",
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => AuthService().signInWithGoogle(),
+              icon: const Icon(Icons.login),
+              label: const Text("Sign in with Google"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrangeAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Loading state
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.deepOrangeAccent),
+      );
+    }
+
+    // Error state
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+            const SizedBox(height: 16),
+            Text(
+              "Failed to load words",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(onPressed: _fetchWords, child: const Text("Retry")),
+          ],
+        ),
+      );
+    }
+
+    // Empty state
     if (_savedWords.isEmpty) {
       return Center(
         child: Column(
@@ -67,19 +159,29 @@ class _MyWordsTabState extends State<MyWordsTab> {
       );
     }
 
+    // Word list from API
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-          child: Text(
-            "My Vocabulary Book",
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade800,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "My Vocabulary Book",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              IconButton(
+                onPressed: _fetchWords,
+                icon: const Icon(Icons.refresh, color: Colors.deepOrangeAccent),
+              ),
+            ],
           ),
         ),
         Padding(
@@ -99,10 +201,10 @@ class _MyWordsTabState extends State<MyWordsTab> {
             itemBuilder: (context, index) {
               final item = _savedWords[index];
               return _WordAccordionCard(
-                word: item['word'] ?? '',
-                analogy: item['analogy'] ?? '',
-                emoji: item['emoji'] ?? '📖',
-                savedDate: item['savedDate'] ?? '',
+                word: item['slang_word'] ?? '',
+                analogy: item['successful_analogy'] ?? '',
+                literal: item['literal_translation'] ?? '',
+                savedDate: item['saved_at'] ?? '',
               );
             },
           ),
@@ -115,13 +217,13 @@ class _MyWordsTabState extends State<MyWordsTab> {
 class _WordAccordionCard extends StatefulWidget {
   final String word;
   final String analogy;
-  final String emoji;
+  final String literal;
   final String savedDate;
 
   const _WordAccordionCard({
     required this.word,
     required this.analogy,
-    required this.emoji,
+    required this.literal,
     required this.savedDate,
   });
 
@@ -129,8 +231,7 @@ class _WordAccordionCard extends StatefulWidget {
   State<_WordAccordionCard> createState() => _WordAccordionCardState();
 }
 
-class _WordAccordionCardState extends State<_WordAccordionCard>
-    with SingleTickerProviderStateMixin {
+class _WordAccordionCardState extends State<_WordAccordionCard> {
   bool _isExpanded = false;
 
   @override
@@ -157,10 +258,9 @@ class _WordAccordionCardState extends State<_WordAccordionCard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header row — always visible
+                // Header row
                 Row(
                   children: [
-                    // Emoji badge
                     Container(
                       width: 48,
                       height: 48,
@@ -168,16 +268,11 @@ class _WordAccordionCardState extends State<_WordAccordionCard>
                         color: Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Center(
-                        child: Text(
-                          widget.emoji,
-                          style: const TextStyle(fontSize: 24),
-                        ),
+                      child: const Center(
+                        child: Text('📖', style: TextStyle(fontSize: 24)),
                       ),
                     ),
                     const SizedBox(width: 16),
-
-                    // Word + date
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,17 +287,17 @@ class _WordAccordionCardState extends State<_WordAccordionCard>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Saved ${widget.savedDate}',
+                            widget.literal,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey.shade500,
+                              color: Colors.grey.shade600,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-
-                    // Expand/collapse icon
                     AnimatedRotation(
                       turns: _isExpanded ? 0.5 : 0,
                       duration: const Duration(milliseconds: 300),
@@ -215,7 +310,7 @@ class _WordAccordionCardState extends State<_WordAccordionCard>
                   ],
                 ),
 
-                // Expanded content — analogy
+                // Expanded content from API
                 if (_isExpanded) ...[
                   const SizedBox(height: 16),
                   Container(
@@ -229,7 +324,7 @@ class _WordAccordionCardState extends State<_WordAccordionCard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Cultural Analogy',
+                          'Saved Analogy',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,

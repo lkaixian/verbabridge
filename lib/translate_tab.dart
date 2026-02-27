@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'services/api_service.dart';
+import 'profile_tab.dart';
 import 'analogy_swipe_cards.dart';
 
 class TranslateTab extends StatefulWidget {
@@ -10,36 +12,18 @@ class TranslateTab extends StatefulWidget {
 
 class _TranslateTabState extends State<TranslateTab>
     with SingleTickerProviderStateMixin {
-  bool _isLiveMode = false; // false = Lookup, true = Live
+  bool _isLiveMode = false;
   bool _isListening = false;
+  bool _isLoading = false;
 
   final TextEditingController _textController = TextEditingController();
 
-  // Placeholder live transcript data with slang words marked
-  final List<Map<String, dynamic>> _liveTranscript = [
-    {
-      'text': 'Eh boss, tapau one teh tarik',
-      'slangs': ['tapau', 'teh tarik'],
-    },
-    {
-      'text': 'This one damn shiok lah',
-      'slangs': ['shiok', 'lah'],
-    },
-    {
-      'text': 'Walao, the queue so long',
-      'slangs': ['Walao'],
-    },
-    {
-      'text': 'Can jio your friend come or not',
-      'slangs': ['jio'],
-    },
-    {
-      'text': 'Aiyo, no more nasi lemak already',
-      'slangs': ['Aiyo', 'nasi lemak'],
-    },
-  ];
+  // Live transcript entries from API
+  final List<Map<String, dynamic>> _liveTranscript = [];
 
-  // Pulsing animation for the Live button
+  // Simulated live input text for demo (will be replaced by speech-to-text)
+  final TextEditingController _liveInputController = TextEditingController();
+
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -60,7 +44,82 @@ class _TranslateTabState extends State<TranslateTab>
   void dispose() {
     _pulseController.dispose();
     _textController.dispose();
+    _liveInputController.dispose();
     super.dispose();
+  }
+
+  // ── LOOKUP: Call /generate_analogy API ──
+  Future<void> _handleLookup() async {
+    final typed = _textController.text.trim();
+    if (typed.isEmpty) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await ApiService.generateAnalogy(
+        slangText: typed,
+        userGeneration: UserProfile.generation ?? 'Boomer',
+        userVibe: UserProfile.dialect ?? 'Standard English',
+      );
+
+      if (!mounted) return;
+
+      // Show analogy cards with REAL data from API
+      final analogies = List<String>.from(result['analogies'] ?? []);
+      final literal = result['literal_translation'] ?? '';
+      final slangDetected = result['slang_detected'] ?? typed;
+      final warning = result['ambiguity_warning'];
+
+      showAnalogyCardsFromApi(
+        context,
+        slangDetected,
+        literal,
+        analogies,
+        warning,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ── LIVE: Call /live_translate API ──
+  Future<void> _handleLiveTranslate(String text) async {
+    if (text.trim().isEmpty) return;
+
+    try {
+      final result = await ApiService.liveTranslate(
+        text: text,
+        userVibe: UserProfile.dialect ?? 'Standard English',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _liveTranscript.insert(0, {
+          'original': text,
+          'text': result['translated_text'] ?? text,
+          'slangs': List<String>.from(result['highlight_words'] ?? []),
+        });
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _liveTranscript.insert(0, {
+          'original': text,
+          'text': text,
+          'slangs': <String>[],
+        });
+      });
+    }
   }
 
   void _toggleListening() {
@@ -76,7 +135,9 @@ class _TranslateTabState extends State<TranslateTab>
   }
 
   void _onSlangTap(String slang) {
-    showAnalogyCards(context, slang);
+    // When tapping a highlighted slang in Live mode, do a lookup via API
+    _textController.text = slang;
+    _handleLookup();
   }
 
   // ============================================================
@@ -185,26 +246,32 @@ class _TranslateTabState extends State<TranslateTab>
 
         const SizedBox(height: 16),
 
-        // Send / Translate button
+        // Translate button — calls API
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton.icon(
-              onPressed: _textController.text.trim().isEmpty
+              onPressed: (_textController.text.trim().isEmpty || _isLoading)
                   ? null
-                  : () {
-                      // Placeholder: trigger translation for typed text
-                      final typed = _textController.text.trim();
-                      if (typed.isNotEmpty) {
-                        showAnalogyCards(context, typed);
-                      }
-                    },
-              icon: const Icon(Icons.send, size: 20),
-              label: const Text(
-                "Translate",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  : _handleLookup,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send, size: 20),
+              label: Text(
+                _isLoading ? "Translating..." : "Translate",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepOrangeAccent,
@@ -321,6 +388,49 @@ class _TranslateTabState extends State<TranslateTab>
   Widget _buildLiveMode() {
     return Column(
       children: [
+        // Live text input bar (simulates speech input for now)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _liveInputController,
+                  decoration: InputDecoration(
+                    hintText: "Type slang to simulate live input...",
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 14,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
+                  final text = _liveInputController.text.trim();
+                  if (text.isNotEmpty) {
+                    _handleLiveTranslate(text);
+                    _liveInputController.clear();
+                  }
+                },
+                icon: const Icon(Icons.send, color: Colors.deepOrangeAccent),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+
         // Chat / subtitle transcript area
         Expanded(
           child: Container(
@@ -333,26 +443,45 @@ class _TranslateTabState extends State<TranslateTab>
             child: _liveTranscript.isEmpty
                 ? Center(
                     child: Text(
-                      "Tap the button below to start listening...",
+                      "Type a sentence above to see live translation...",
                       style: TextStyle(
                         color: Colors.grey.shade500,
                         fontSize: 16,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   )
                 : ListView.builder(
-                    reverse: true, // Text flows upward
-                    itemCount: _isListening ? _liveTranscript.length : 0,
+                    reverse: true,
+                    itemCount: _liveTranscript.length,
                     itemBuilder: (context, index) {
-                      // Show in reverse order (newest at bottom)
-                      final item =
-                          _liveTranscript[_liveTranscript.length - 1 - index];
+                      final item = _liveTranscript[index];
                       final text = item['text'] as String;
                       final slangs = List<String>.from(item['slangs'] ?? []);
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16),
-                        child: _buildHighlightedText(text, slangs),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Original text (small, dimmed)
+                            if (item['original'] != null &&
+                                item['original'] != text)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Text(
+                                  '💬 ${item['original']}',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            // Translated text with highlights
+                            _buildHighlightedText(text, slangs),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -361,7 +490,7 @@ class _TranslateTabState extends State<TranslateTab>
 
         const SizedBox(height: 20),
 
-        // Pulsing "Start Listening" button
+        // Pulsing button
         Padding(
           padding: const EdgeInsets.only(bottom: 24),
           child: GestureDetector(
@@ -429,7 +558,6 @@ class _TranslateTabState extends State<TranslateTab>
       );
     }
 
-    // Build regex pattern to match slang words (case insensitive)
     final pattern = slangs.map((s) => RegExp.escape(s)).join('|');
     final regex = RegExp('($pattern)', caseSensitive: false);
     final parts = text.split(regex);
