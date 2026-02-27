@@ -46,6 +46,7 @@ class _TranslateTabState extends State<TranslateTab>
   @override
   void initState() {
     super.initState();
+    _textController.addListener(() => setState(() {}));
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -182,7 +183,42 @@ class _TranslateTabState extends State<TranslateTab>
           ),
         ),
 
-        const SizedBox(height: 30),
+        const SizedBox(height: 16),
+
+        // Send / Translate button
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: _textController.text.trim().isEmpty
+                  ? null
+                  : () {
+                      // Placeholder: trigger translation for typed text
+                      final typed = _textController.text.trim();
+                      if (typed.isNotEmpty) {
+                        showAnalogyCards(context, typed);
+                      }
+                    },
+              icon: const Icon(Icons.send, size: 20),
+              label: const Text(
+                "Translate",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrangeAccent,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 24),
 
         // Hold to Speak microphone button
         Column(
