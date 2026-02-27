@@ -32,6 +32,25 @@ class LoginScreen extends StatelessWidget {
                 await AuthService().signInWithGoogle();
               },
             ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                AuthService().continueAsGuest();
+              },
+              child: const Text(
+                "Continue as Guest",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Some features like History will be unavailable",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
         ),
       ),

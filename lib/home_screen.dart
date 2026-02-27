@@ -30,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isGuest = AuthService.isGuest.value;
+
     return Scaffold(
       resizeToAvoidBottomInset: true, // Fixes keyboard overflow globally
       appBar: AppBar(
@@ -39,19 +41,34 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         backgroundColor: Colors.deepOrangeAccent,
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HistoryScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => AuthService().signOut(),
-          ),
-        ],
+        actions: isGuest
+            ? [
+                // Guest: show Sign In button
+                TextButton.icon(
+                  onPressed: () async {
+                    await AuthService().signInWithGoogle();
+                  },
+                  icon: const Icon(Icons.login, color: Colors.white),
+                  label: const Text(
+                    "Sign In",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ]
+            : [
+                // Signed-in: show History + Logout
+                IconButton(
+                  icon: const Icon(Icons.history),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: () => AuthService().signOut(),
+                ),
+              ],
       ),
       body: _tabs[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -145,6 +162,8 @@ class _ARScannerTabState extends State<ARScannerTab> {
   }
 
   Future<void> _saveToHistory(Map<String, dynamic> data) async {
+    // Skip history saving for guest users
+    if (AuthService.isGuest.value) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || data['item_count'] == 0) return;
 
@@ -240,7 +259,7 @@ class _ARScannerTabState extends State<ARScannerTab> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedStyle,
+                  initialValue: _selectedStyle,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(horizontal: 10),
@@ -669,7 +688,7 @@ class _VibeTextTabState extends State<VibeTextTab> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DropdownButtonFormField<String>(
-              value: _selectedStyle,
+              initialValue: _selectedStyle,
               decoration: const InputDecoration(
                 labelText: "Target Culture/Vibe",
                 border: OutlineInputBorder(),
@@ -907,7 +926,7 @@ class _QRBridgeTabState extends State<QRBridgeTab> {
                               children: [
                                 Expanded(
                                   child: DropdownButtonFormField<String>(
-                                    value: _selectedStyle,
+                                    initialValue: _selectedStyle,
                                     decoration: const InputDecoration(
                                       isDense: true,
                                       border: OutlineInputBorder(),
@@ -1033,7 +1052,7 @@ class QrScannerOverlayShape extends ShapeBorder {
   final double borderLength;
   final double cutOutSize;
 
-  QrScannerOverlayShape({
+  const QrScannerOverlayShape({
     this.borderColor = Colors.white,
     this.borderWidth = 10,
     this.borderRadius = 0,

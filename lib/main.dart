@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'firebase_options.dart';
+import 'services/firebase_options.dart';
+import 'services/auth_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 
@@ -20,13 +21,12 @@ class VerbaBridgeApp extends StatelessWidget {
       title: 'VerbaBridge',
       debugShowCheckedModeBanner:
           false, // Hides the "DEBUG" banner for a clean pitch
-      // 🌟 THE FIX: Force Light Mode so text stays black on your white UI cards
+      // Force Light Mode so text stays black on your white UI cards
       themeMode: ThemeMode.light,
       theme: ThemeData(
-        brightness: Brightness.light, // Changed from dark to light
+        brightness: Brightness.light,
         primarySwatch: Colors.orange,
-        scaffoldBackgroundColor:
-            Colors.grey.shade100, // Matches your tab backgrounds
+        scaffoldBackgroundColor: Colors.grey.shade100,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.deepOrangeAccent,
           foregroundColor: Colors.white,
@@ -35,25 +35,35 @@ class VerbaBridgeApp extends StatelessWidget {
         ),
       ),
 
-      // Auto-route based on Auth State
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          // Add a quick loading state so the screen doesn't flicker on app launch
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.deepOrangeAccent,
-                ),
-              ),
-            );
+      // Auto-route based on Auth State OR Guest Mode
+      home: ValueListenableBuilder<bool>(
+        valueListenable: AuthService.isGuest,
+        builder: (context, isGuest, _) {
+          // Guest mode — skip auth entirely
+          if (isGuest) {
+            return const HomeScreen();
           }
 
-          if (snapshot.hasData) {
-            return const HomeScreen(); // Logged in
-          }
-          return const LoginScreen(); // Needs to log in
+          // Normal auth-gate
+          return StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.deepOrangeAccent,
+                    ),
+                  ),
+                );
+              }
+
+              if (snapshot.hasData) {
+                return const HomeScreen(); // Logged in
+              }
+              return const LoginScreen(); // Needs to log in
+            },
+          );
         },
       ),
     );
