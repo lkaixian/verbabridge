@@ -4,16 +4,14 @@ import firebase_admin
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.concurrency import run_in_threadpool
 from firebase_admin import credentials, firestore
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 # --- MODULAR IMPORTS ---
 from core.cache import FileSystemCache
-from core.ai import generate_translations       # The Main Logic
-from core.style import translate_style          # The Style Engine
-from core.utils import get_hokkien_romanization # The Penang Patcher
+from core.ai import generate_analogy
+from core.style import live_translate
 
 # --- SETUP & LOGGING ---
 load_dotenv()
@@ -25,7 +23,7 @@ app = FastAPI(title="VerbaBridge Backend", version="3.0.0")
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins for the hackathon
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,13 +39,21 @@ except Exception as e:
 
 cache = FileSystemCache()
 
-# --- DATA MODELS (Input Validation) ---
-class UserInput(BaseModel):
-    text: str
+# --- DATA MODELS ---
+class AnalogyInput(BaseModel):
+    slang_text: str
+    user_generation: str
+    user_vibe: str
 
-class StyleInput(BaseModel):
+class LiveTranslateInput(BaseModel):
     text: str
-    style: str  # e.g., "Gen Alpha", "Penang Hokkien"
+    user_vibe: str
+
+class SaveWordInput(BaseModel):
+    user_id: str
+    slang_word: str
+    literal_translation: str
+    successful_analogy: str
 
 # --- ROUTES ---
 
@@ -59,63 +65,84 @@ async def home():
         return FileResponse(file_path)
     return HTMLResponse(content="<h1 style='color:red; font-family:sans-serif'>Error: static/index.html not found!</h1>", status_code=404)
 
-# 1. CORE TRANSLATION (Text -> Culture)
-@app.post("/process_text")
-async def process_text(data: UserInput):
-    logger.info(f"📩 Processing Text: '{data.text}'")
+# 1. ANALOGY ENGINE (Slang -> Cultural Analogies)
+@app.post("/generate_analogy")
+async def api_generate_analogy(data: AnalogyInput):
+    """Takes a slang word and generates personalized cultural analogies."""
+    logger.info(f"🧠 Analogy Request: '{data.slang_text}' | Gen: {data.user_generation} | Vibe: {data.user_vibe}")
 
-    # A. Check Cache (Speed Layer)
-    cached_data = cache.get(data.text)
+    # Check cache first
+    cache_key = f"{data.slang_text}|{data.user_generation}|{data.user_vibe}"
+    cached_data = cache.get(cache_key)
     if cached_data:
         logger.info("⚡ CACHE HIT")
-        return {
-            "status": "success", 
-            "source": "cache", 
-            "is_ambiguous": cached_data.get("is_ambiguous", False),
-            "results": cached_data.get("results", [])
-        }
+        return {"status": "success", "source": "cache", **cached_data}
 
-    # B. Ask AI (Intelligence Layer)
     try:
-        ai_data = await run_in_threadpool(generate_translations, data.text)
+        result = await generate_analogy(data.slang_text, data.user_generation, data.user_vibe)
     except Exception as e:
-        logger.error(f"AI Generation Error: {e}")
-        raise HTTPException(status_code=500, detail="AI generation failed")
+        logger.error(f"Analogy Generation Error: {e}")
+        raise HTTPException(status_code=500, detail="Analogy generation failed")
 
-    if not ai_data or not ai_data.get("results"):
-        raise HTTPException(status_code=500, detail="Invalid AI response format")
+    # Cache the result
+    cache.set(cache_key, result)
 
-    # C. Apply Penang Hokkien Patch (Logic Layer)
-    for res in ai_data.get("results", []):
-        try:
-            translations = res.get("translations", {})
-            hokkien_data = translations.get("hokkien", {})
-            
-            if "hanzi" in hokkien_data:
-                raw_hanzi = hokkien_data["hanzi"]
-                hokkien_data["romanization"] = get_hokkien_romanization(raw_hanzi)
-        except Exception as e:
-            logger.warning(f"Failed to apply Taibun patch: {e}")
+    return {"status": "success", "source": "gemini", **result}
 
-    # D. Save to Cache (Persistence Layer)
-    cache.set(data.text, ai_data) 
+# 2. LIVE TRANSLATE (Slang -> Polite Senior-Friendly Language)
+@app.post("/live_translate")
+async def api_live_translate(data: LiveTranslateInput):
+    """Translates slang text into polite, senior-friendly language."""
+    logger.info(f"🔴 Live Translate: '{data.text}' | Vibe: {data.user_vibe}")
 
-    return {
-        "status": "success", 
-        "source": "gemini", 
-        "is_ambiguous": ai_data.get("is_ambiguous", False),
-        "results": ai_data["results"]
-    }
-
-# 2. STYLE TRANSFER (Text -> Slang)
-@app.post("/translate_style")
-async def api_translate_style(data: StyleInput):
-    """Converts standard text into a specific persona."""
-    logger.info(f"🎭 Applying Style [{data.style}] to: '{data.text}'")
-    
     try:
-        result = await run_in_threadpool(translate_style, data.text, data.style)
-        return result
+        result = await live_translate(data.text, data.user_vibe)
+        return {"status": "success", **result}
     except Exception as e:
-        logger.error(f"Style Translation Error: {e}")
+        logger.error(f"Live Translation Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# 3. SAVE WORD (My Words → Firestore)
+@app.post("/api/save_word")
+async def api_save_word(data: SaveWordInput):
+    """Saves a slang word and its analogy to the user's vocabulary book."""
+    logger.info(f"💾 Saving word '{data.slang_word}' for user: {data.user_id}")
+    try:
+        doc_ref = db.collection("saved_words").document()
+        doc_ref.set({
+            "user_id": data.user_id,
+            "slang_word": data.slang_word,
+            "literal_translation": data.literal_translation,
+            "successful_analogy": data.successful_analogy,
+            "saved_at": firestore.SERVER_TIMESTAMP,
+        })
+        return {"status": "success", "message": f"'{data.slang_word}' saved to My Words!"}
+    except Exception as e:
+        logger.error(f"Firestore Save Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save word")
+
+# 4. GET WORDS (My Words ← Firestore)
+@app.get("/api/get_words/{user_id}")
+async def api_get_words(user_id: str):
+    """Retrieves all saved words for a user, sorted by newest first."""
+    logger.info(f"📖 Fetching saved words for user: {user_id}")
+    try:
+        docs = (
+            db.collection("saved_words")
+            .where("user_id", "==", user_id)
+            .order_by("saved_at", direction=firestore.Query.DESCENDING)
+            .stream()
+        )
+        words = []
+        for doc in docs:
+            entry = doc.to_dict()
+            entry["id"] = doc.id
+            # Convert Firestore timestamp to ISO string for JSON
+            if entry.get("saved_at"):
+                entry["saved_at"] = entry["saved_at"].isoformat()
+            words.append(entry)
+
+        return {"status": "success", "count": len(words), "words": words}
+    except Exception as e:
+        logger.error(f"Firestore Read Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch saved words")
