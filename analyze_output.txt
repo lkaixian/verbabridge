@@ -1,0 +1,27 @@
+﻿Analyzing verbabridge...                                        
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\home_screen.dart:347:62 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\home_screen.dart:820:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\home_screen.dart:826:9 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\image_translation_tab.dart:218:60 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\qr_bridge_tab.dart:75:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\qr_bridge_tab.dart:81:9 - use_build_context_synchronously
+   info - Don't invoke 'print' in production code - lib\services\auth_service.dart:51:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\auth_service.dart:75:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\auth_service.dart:87:7 - avoid_print
+
+flutter : 9 issues found. 
+(ran in 1.7s)
+At line:1 char:1
++ flutter analyze 2>&1 | 
+Out-File -FilePath C:\Users
+\ILLEGEAR\verbabrid ...
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (9 i  
+  ssues found. (ran in 1   
+ .7s):String) [], Remot    
+eException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
