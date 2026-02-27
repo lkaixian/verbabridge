@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'analogy_swipe_cards.dart';
 
 class TranslateTab extends StatefulWidget {
   const TranslateTab({super.key});
@@ -74,45 +75,7 @@ class _TranslateTabState extends State<TranslateTab>
   }
 
   void _onSlangTap(String slang) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                slang,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Slang detected!",
-                style: TextStyle(
-                  color: Colors.deepOrange,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                "Tap to learn more about \"$slang\" — cultural context and translations will appear here.",
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
-    );
+    showAnalogyCards(context, slang);
   }
 
   // ============================================================
