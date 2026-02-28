@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VerbaBridge Debug Console v2.0</title>
+    <title>VerbaBridge Debug Console v3.0</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -17,7 +17,7 @@
       :root {
         --bg: #0f172a;
         --card: #1e293b;
-        --accent: #38bdf8;
+        --accent: #ff6b35; /* Updated to match Flutter app's deepOrange */
         --text: #f8fafc;
         --success: #22c55e;
         --warn: #f59e0b;
@@ -36,7 +36,6 @@
         align-items: center;
       }
 
-      /* --- LAYOUT --- */
       .console-wrapper {
         width: 100%;
         max-width: 1000px;
@@ -57,12 +56,11 @@
       .header h1 {
         margin: 0;
         font-size: 1.5rem;
-        background: linear-gradient(90deg, #38bdf8, #818cf8);
+        background: linear-gradient(90deg, #ff6b35, #fca311);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
       }
 
-      /* --- TABS --- */
       .mode-tabs {
         display: flex;
         background: #0f172a;
@@ -91,7 +89,6 @@
         margin-bottom: -1px;
       }
 
-      /* --- INPUTS --- */
       .controls {
         padding: 30px;
       }
@@ -113,14 +110,21 @@
         border-radius: 8px;
         font-size: 1.1rem;
         margin-bottom: 15px;
-        font-family: "Fira Code", monospace;
+        font-family: "Inter", sans-serif;
         box-sizing: border-box;
       }
+
+      .input-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+      }
+
       .action-btn {
         width: 100%;
         padding: 15px;
         background: var(--accent);
-        color: #0f172a;
+        color: white;
         border: none;
         border-radius: 8px;
         font-weight: 800;
@@ -131,18 +135,17 @@
         letter-spacing: 1px;
       }
       .action-btn:hover {
-        background: #7dd3fc;
+        background: #ff8c61;
         transform: translateY(-2px);
       }
 
-      /* --- TERMINAL & CARDS --- */
       .terminal {
         background: #020617;
         border-top: 1px solid var(--border);
         padding: 20px;
         font-family: "Fira Code", monospace;
         font-size: 0.85rem;
-        height: 300px;
+        height: 400px;
         overflow-y: auto;
         scroll-behavior: smooth;
       }
@@ -164,10 +167,9 @@
         color: var(--danger);
       }
 
-      /* --- RIZZETA CARD --- */
       .rizzeta-card {
         background: #1e293b;
-        border-left: 4px solid #38bdf8;
+        border-left: 4px solid var(--accent);
         padding: 16px;
         margin: 12px 0;
         border-radius: 6px;
@@ -175,36 +177,15 @@
         animation: fadeIn 0.3s ease-in-out;
       }
 
-      /* --- OCR COMPARISON CONTAINER --- */
-      .comparison-container {
-        display: flex;
-        gap: 10px;
-        margin-top: 15px;
-        flex-wrap: wrap;
-      }
-      .img-box {
-        flex: 1;
-        min-width: 250px;
-        background: black;
-        border-radius: 8px;
-        overflow: hidden;
-        position: relative;
-      }
-      .img-box img {
-        width: 100%;
-        height: auto;
-        display: block;
-      }
-      .img-label {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 4px 8px;
+      .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #334155;
         border-radius: 4px;
         font-size: 0.75rem;
-        font-weight: bold;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        color: #fca311;
       }
 
       @keyframes fadeIn {
@@ -224,7 +205,7 @@
       <div class="header">
         <h1>
           VerbaBridge
-          <span style="color: white; font-weight: 300">// VISUALIZER</span>
+          <span style="color: white; font-weight: 300">// WEB CONSOLE</span>
         </h1>
         <div
           style="
@@ -235,80 +216,72 @@
             border-radius: 20px;
           "
         >
-          ● SYSTEM READY
+          ● API CONNECTED
         </div>
       </div>
 
       <div class="mode-tabs">
-        <div class="mode-tab active" onclick="ui.switchTab('translate', this)">
-          Translate
+        <div class="mode-tab active" onclick="ui.switchTab('analogy', this)">
+          Lookup (Analogy)
         </div>
-        <div class="mode-tab" onclick="ui.switchTab('style', this)">
-          Style Transfer
-        </div>
-        <div class="mode-tab" onclick="ui.switchTab('ocr', this)">
-          Visual Remix
+        <div class="mode-tab" onclick="ui.switchTab('live', this)">
+          Live Translate
         </div>
       </div>
 
       <div class="controls">
-        <div id="sec-translate" class="input-section active">
+        <div id="sec-analogy" class="input-section active">
           <input
             type="text"
-            id="inp-translate"
-            placeholder="Enter word (e.g. 'Mata', 'Payung', 'Skibidi')..."
+            id="inp-slang"
+            placeholder="Enter slang (e.g. 'Skibidi', 'Gostan')..."
           />
-          <button class="action-btn" onclick="api.runTranslate()">
-            Analyze Semantics
-          </button>
-        </div>
 
-        <div id="sec-style" class="input-section">
-          <input
-            type="text"
-            id="inp-style-text"
-            placeholder="Enter standard English text..."
-          />
-          <select id="inp-style-mode">
-            <option value="Gen Alpha">Gen Alpha (Brainrot)</option>
-            <option value="Ah Beng (Penang)">Ah Beng (Hokkien/Manglish)</option>
-            <option value="Mak Cik (Gossip)">Mak Cik (Malay Gossip)</option>
-            <option value="Corporate Wayang">Corporate Speak</option>
-          </select>
-          <button class="action-btn" onclick="api.runStyle()">
-            Rewrite Vibe
-          </button>
-        </div>
-
-        <div id="sec-ocr" class="input-section">
-          <div style="display: flex; gap: 10px; margin-bottom: 15px">
-            <input
-              type="file"
-              id="inp-file"
-              accept="image/*"
-              style="
-                flex: 2;
-                padding: 10px;
-                background: #0f172a;
-                border: 1px solid #334155;
-                color: white;
-              "
-            />
-            <select id="inp-ocr-style" style="flex: 1; margin-bottom: 0">
-              <option value="Gen Alpha">To Gen Alpha</option>
-              <option value="Ah Beng (Penang)">To Hokkien</option>
-              <option value="Malay Slang">To Malay</option>
+          <div class="input-row">
+            <select id="inp-gen">
+              <option value="Boomer">Boomer (1946–1964)</option>
+              <option value="Gen X">Gen X (1965–1980)</option>
+              <option value="Gen Y">Gen Y (1981–1996)</option>
+              <option value="Gen Z">Gen Z (1997–2012)</option>
+            </select>
+            <select id="inp-vibe">
+              <option value="Standard English">Standard English</option>
+              <option value="Manglish">Manglish</option>
+              <option value="Penang Hokkien">Penang Hokkien</option>
+              <option value="Cantonese">Cantonese</option>
+              <option value="Malay">Malay</option>
             </select>
           </div>
-          <button class="action-btn" onclick="api.runOCR()">
-            Remix Reality
+
+          <button class="action-btn" onclick="api.runAnalogy()">
+            Generate Analogy
+          </button>
+        </div>
+
+        <div id="sec-live" class="input-section">
+          <input
+            type="text"
+            id="inp-live-text"
+            placeholder="Enter a sentence with slang..."
+          />
+
+          <select id="inp-live-vibe">
+            <option value="Standard English">Standard English</option>
+            <option value="Manglish">Manglish</option>
+            <option value="Penang Hokkien">Penang Hokkien</option>
+            <option value="Cantonese">Cantonese</option>
+            <option value="Malay">Malay</option>
+          </select>
+
+          <button class="action-btn" onclick="api.runLive()">
+            Live Translate
           </button>
         </div>
       </div>
 
       <div id="terminal" class="terminal">
         <div class="log-entry log-info">
-          > VerbaBridge UI v2.0 Initialized. Waiting for input...
+          > VerbaBridge UI v3.0 Initialized. Waiting for input...
         </div>
       </div>
     </div>
@@ -326,36 +299,52 @@
           ui.terminal.scrollTop = ui.terminal.scrollHeight;
         },
 
-        renderCard: (title, content, subtext) => {
+        renderAnalogyCard: (data) => {
+          let analogiesHtml = data.analogies
+            .map((a) => `<li style="margin-bottom: 8px;">${a}</li>`)
+            .join("");
+          let warningHtml = data.ambiguity_warning
+            ? `<div style="color: #ef4444; margin-top: 10px; font-size: 0.85rem;"><i class="fa-solid fa-triangle-exclamation"></i> Warning: ${data.ambiguity_warning}</div>`
+            : "";
+
           const card = document.createElement("div");
           card.className = "rizzeta-card";
           card.innerHTML = `
-                    <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
-                        <i class="fa-solid fa-microscope" style="color: #38bdf8;"></i> ${title}
-                    </div>
-                    <div style="font-size: 1.1rem; color: white; margin-bottom: 12px; font-weight: 600; line-height: 1.4;">"${content}"</div>
-                    <div style="background: rgba(56, 189, 248, 0.1); color: #7dd3fc; padding: 10px; font-size: 0.85rem; border-radius: 6px; font-family: 'Fira Code', monospace;">
-                        ${subtext}
-                    </div>
-                `;
+            <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                <i class="fa-solid fa-book-open" style="color: #ff6b35;"></i> ANALOGY ENGINE (Source: ${data.source})
+            </div>
+            <div style="font-size: 1.5rem; color: white; font-weight: bold;">${data.slang_detected}</div>
+            <div style="color: #94a3b8; font-style: italic; margin-bottom: 12px;">Literal: "${data.literal_translation}"</div>
+            <div style="background: #0f172a; color: #cbd5e1; padding: 12px; font-size: 0.95rem; border-radius: 6px; border: 1px solid #334155;">
+                <ul style="margin: 0; padding-left: 20px;">
+                  ${analogiesHtml}
+                </ul>
+            </div>
+            ${warningHtml}
+          `;
           ui.terminal.appendChild(card);
           ui.terminal.scrollTop = ui.terminal.scrollHeight;
         },
 
-        renderComparison: (originalSrc, remixedSrc) => {
-          const container = document.createElement("div");
-          container.className = "comparison-container";
-          container.innerHTML = `
-                    <div class="img-box">
-                        <span class="img-label">ORIGINAL</span>
-                        <img src="${originalSrc}">
-                    </div>
-                    <div class="img-box">
-                        <span class="img-label" style="background:#22c55e;">REMIXED</span>
-                        <img src="${remixedSrc}">
-                    </div>
-                `;
-          ui.terminal.appendChild(container);
+        renderLiveCard: (data) => {
+          let tagsHtml = data.highlight_words
+            .map((w) => `<span class="tag">${w}</span>`)
+            .join("");
+
+          const card = document.createElement("div");
+          card.className = "rizzeta-card";
+          card.innerHTML = `
+            <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                <i class="fa-solid fa-bolt" style="color: #ff6b35;"></i> LIVE TRANSLATE
+            </div>
+            <div style="font-size: 1.1rem; color: white; margin-bottom: 12px; font-weight: 600; line-height: 1.4;">
+              "${data.translated_text}"
+            </div>
+            <div style="margin-top: 10px;">
+                <span style="font-size: 0.8rem; color: #64748b; margin-right: 8px;">Slang detected:</span> ${tagsHtml || '<span style="color:#64748b; font-size:0.8rem;">None</span>'}
+            </div>
+          `;
+          ui.terminal.appendChild(card);
           ui.terminal.scrollTop = ui.terminal.scrollHeight;
         },
 
@@ -368,104 +357,62 @@
             .querySelectorAll(".input-section")
             .forEach((s) => s.classList.remove("active"));
           document.getElementById(`sec-${mode}`).classList.add("active");
-          ui.log(`Mode Switched: ${mode.toUpperCase()}`);
+          ui.log(`Switched to: ${mode.toUpperCase()}`);
         },
       };
 
       // --- API CONTROLLER ---
       const api = {
-        runTranslate: async () => {
-          const text = document.getElementById("inp-translate").value.trim();
-          if (!text) return ui.log("Input empty!", "error");
+        runAnalogy: async () => {
+          const slang_text = document.getElementById("inp-slang").value.trim();
+          const user_generation = document.getElementById("inp-gen").value;
+          const user_vibe = document.getElementById("inp-vibe").value;
 
-          ui.log(`Analyzing "${text}"...`);
+          if (!slang_text) return ui.log("Input empty!", "error");
+
+          ui.log(`Calling /generate_analogy for "${slang_text}"...`);
           try {
-            const res = await fetch("/process_text", {
+            const res = await fetch("/generate_analogy", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text }),
+              body: JSON.stringify({ slang_text, user_generation, user_vibe }),
             });
             const data = await res.json();
 
-            if (data.results) {
-              data.results.forEach((r) => {
-                // Show first dialect translation as example
-                const firstKey = Object.keys(r.translations)[0];
-                const trans = r.translations[firstKey];
-                ui.renderCard(
-                  r.title,
-                  r.description,
-                  `Translation (${firstKey}): ${trans.script || trans.hanzi} (${trans.english_meaning})`,
-                );
-              });
-              ui.log("Analysis Complete.", "success");
-            }
-          } catch (e) {
-            ui.log(e.message, "error");
-          }
-        },
-
-        runStyle: async () => {
-          const text = document.getElementById("inp-style-text").value;
-          const style = document.getElementById("inp-style-mode").value;
-          if (!text) return ui.log("Input empty!", "error");
-
-          ui.log(`Converting to ${style}...`);
-          try {
-            const res = await fetch("/translate_style", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text, style }),
-            });
-            const data = await res.json();
-            if (data.translated_text) {
-              ui.renderCard(
-                "Rizzeta Style Transfer",
-                data.translated_text,
-                data.explanation,
-              );
-              ui.log("Style Transfer Successful.", "success");
-            }
-          } catch (e) {
-            ui.log(e.message, "error");
-          }
-        },
-
-        runOCR: async () => {
-          const fileInput = document.getElementById("inp-file");
-          const style = document.getElementById("inp-ocr-style").value;
-
-          if (!fileInput.files[0])
-            return ui.log("Select an image first!", "error");
-
-          const formData = new FormData();
-          formData.append("file", fileInput.files[0]);
-          formData.append("style", style);
-
-          // Create a temporary URL for the original image to display immediately
-          const originalUrl = URL.createObjectURL(fileInput.files[0]);
-
-          ui.log(`Scanning & Remixing to ${style}... (This may take 5s)`);
-
-          try {
-            const res = await fetch("/process_image", {
-              method: "POST",
-              body: formData,
-            });
-            const data = await res.json();
-
-            if (data.remixed_image) {
-              ui.log(`Original Text: "${data.original_text}"`);
-              ui.log(`New Text: "${data.translated_text}"`);
-
-              // Render Side-by-Side Comparison
-              ui.renderComparison(originalUrl, data.remixed_image);
-              ui.log("Visual Remix Complete.", "success");
+            if (data.status === "success") {
+              ui.renderAnalogyCard(data);
+              ui.log("Analogy generated successfully.", "success");
             } else {
-              ui.log("OCR Failed: " + JSON.stringify(data), "error");
+              ui.log("Error: " + JSON.stringify(data), "error");
             }
           } catch (e) {
-            ui.log(e.message, "error");
+            ui.log("Connection error: " + e.message, "error");
+          }
+        },
+
+        runLive: async () => {
+          const text = document.getElementById("inp-live-text").value.trim();
+          const user_vibe = document.getElementById("inp-live-vibe").value;
+
+          if (!text) return ui.log("Input empty!", "error");
+
+          ui.log(`Calling /live_translate for "${text}"...`);
+          try {
+            const res = await fetch("/live_translate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text, user_vibe }),
+            });
+            const data = await res.json();
+
+            if (data.status === "success") {
+              ui.renderLiveCard(data);
+              ui.log("Live translation successful.", "success");
+            } else {
+              ui.log("Error: " + JSON.stringify(data), "error");
+            }
+          } catch (e) {
+            ui.log("Connection error: " + e.message, "error");
           }
         },
       };

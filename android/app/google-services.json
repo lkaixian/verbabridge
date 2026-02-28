@@ -12,7 +12,20 @@
           "package_name": "com.example.verbabridge"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "916192934580-rtmsmgg7atsd1houu3imqsjfrgjq64ll.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.verbabridge",
+            "certificate_hash": "f4cc4e4570daef9fbffb3ab1383afca223220886"
+          }
+        },
+        {
+          "client_id": "916192934580-c5s2c5ottosmb9gcrsclp5b10l3epuft.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCMaQhwqFT1xeyG554Zg_l0chG-mzvB9JA"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "916192934580-c5s2c5ottosmb9gcrsclp5b10l3epuft.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "916192934580-jtqd1980dl61je7gj9o3u12to01rk35r.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.verbabridge"
+              }
+            }
+          ]
         }
       }
     }

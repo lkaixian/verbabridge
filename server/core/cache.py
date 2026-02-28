@@ -50,8 +50,15 @@ class FileSystemCache:
     # --- DIRECTORY MODE HELPERS (Original Logic) ---
 
     def _get_hash(self, text):
-        clean_text = text.strip().lower()
-        return hashlib.md5(clean_text.encode('utf-8')).hexdigest()
+        """
+        Normalizes the text to prevent case-sensitivity cache misses,
+        then generates an MD5 hash.
+        """
+        # 1. Normalize: convert to lowercase and remove accidental edge spaces
+        normalized_text = str(text).strip().lower()
+        
+        # 2. Hash the normalized string
+        return hashlib.md5(normalized_text.encode('utf-8')).hexdigest()
 
     def _get_from_dir(self, text):
         file_hash = self._get_hash(text)

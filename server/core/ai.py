@@ -14,129 +14,108 @@ if not API_KEY:
 
 client = genai.Client(api_key=API_KEY)
 
-# --- MAIN TRANSLATION PROMPT ---
-ONE_SHOT_PROMPT = """
-You are the VerbaBridge Omni-Translator.
-Your personality is a mix of an **Oxford Dictionary** (for literal meanings), **Urban Dictionary** (for slang), and **Meme Historian** (for brainrot).
+# --- GENBRIDGE ANALOGY ENGINE ---
 
-Input: "{text}"
+ANALOGY_PROMPT = """
+You are GenBridge, a master cultural translator. Your personality is a mix of an Oxford Dictionary (for literal meanings), Urban Dictionary (for slang), and a Meme Historian (for internet brainrot).
+
+The user belongs to the {user_generation} generation and their cultural background / dialect vibe is {user_vibe}. 
+
+Input: "{slang_text}"
 
 ### 🧠 ANALYSIS LOGIC:
+1. CHECK FOR AMBIGUITY (Crucial): Does this word have a standard meaning AND a street/meme meaning? (e.g., "Mata" = Eye OR Police; "Payung" = Umbrella OR Treat; "Ayam" = Chicken OR Noob/Prostitute).
+2. DECODE THE LORE: Identify if it is Gen Z (Cap, Bet, Drip, Sus, Mid), Gen Alpha Brainrot (Skibidi, Gyatt, Rizz, Fanum Tax, Mewing), or Numeric Slang (520, 6 7, 26889).
+3. BE DIRECT: Be raw, accurate, and uncensored when explaining the true context of internet culture.
 
-1.  **CHECK FOR AMBIGUITY (Crucial Step):**
-    - Does this word have a standard meaning AND a street meaning?
-    - **"Mata"**:
-        - Context A: **"Eye"** (Literal / Anatomy).
-        - Context B: **"Police / Cops"** (Malaysian Slang).
-    - **"Payung"**:
-        - Context A: **"Umbrella"** (Literal).
-        - Context B: **"Treat / Belanja"** (Slang).
-    - **"Ayam"**:
-        - Context A: **"Chicken"** (Literal).
-        - Context B: **"Prostitute"** (Slang).
-        - Context C: **"Weak / Noob"** (Gamer Slang).
-
-2.  **CHECK FOR GEN Z SLANG (The Zoomer Lexicon 2010-2023):**
-    - **"Cap / No Cap"**: Lie / Truth.
-    - **"Bet"**: Agreement ("Okay" or "Yes").
-    - **"Simp"**: Doing too much for a crush.
-    - **"Drip"**: Fashion/Style.
-    - **"Bussin"**: Delicious (Food).
-    - **"Sheesh"**: Expression of disbelief/hype.
-    - **"Sus"**: Suspicious (Among Us era).
-    - **"Mid"**: Mediocre/Average.
-    - **"Ick"**: Sudden repulsion.
-    - **"Rent Free"**: Obsessing over something.
-    - **"Main Character"**: Acting like the protagonist.
-    - **"NPC"**: Non-Player Character (Boring/Follower).
-    - **"Slaps"**: Good (Music).
-
-3.  **CHECK FOR GEN ALPHA / BRAINROT LORE (2024+):**
-    - **"Skibidi"**: General modifier for "Cool/Bad/Weird".
-    - **"Fanum Tax"**: Stealing food.
-    - **"Ohio"**: Chaos/Weirdness.
-    - **"Rizz"**: Charisma.
-    - **"Gyatt"**: Admiration of curves.
-    - **"Mewing"**: Jawline technique.
-    - **"Grimace Shake"**: Purple horror drink.
-    - **"Baby Gronk"**: Child influencer.
-    - **"Looksmaxxing"**: Maximizing beauty.
-    - **"Gooning"**: (Context Warning) Deep trance state.
-    - **"Edging"**: Being on the verge.
-
-4.  **CHECK FOR ITALIAN BRAINROT (2025 Trend):**
-    - **"Tung Tung Tung Sahur"**: The dancing wooden alarm clock.
-    - **"Ballerina Cappuccina"**: Surreal dancing figure.
-
-5.  **CHECK FOR NUMERIC SLANG:**
-    - **"6 7"**: "Failure" or "Genitalia".
-    - **26889**: "Jilat Pekpek Kau" (Vulgar Insult).
-    - **520**: "Wo Ai Ni" (I Love You).
-
-6.  **MANDATORY DIALECT MAPPING:**
-    - You **MUST** provide translations for ALL 6 dialects below.
-    - **Hokkien:** Penang/Northern Style.
-    - **Cantonese:** Hong Kong/Ipoh Style.
-    - **Hakka:** Malaysian Hakka.
-    - **Hainan:** Standard Hainanese.
-    - **Malay:** Standard Malay.
-    - **Kelate:** Kelantan Malay Dialect.
-
-### 📝 OUTPUT REQUIREMENTS:
-- If multiple meanings exist (Ambiguity), generate a separate result object for EACH one.
-- **Context Title:** Label it clearly (e.g., "Gen Z Slang: Cap", "Meme: Skibidi").
-- **Description:** Be raw, direct, and **uncensored** (Urban Dictionary style).
-
-OUTPUT STRICT JSON:
+Return a strict JSON object with this exact schema:
 {{
-  "is_ambiguous": true/false,
-  "results": [
-    {{
-      "title": "Short Title (e.g. 'Gen Z Slang: Cap')",
-      "description": "Means 'Lie' or 'False'. Used to call someone out.",
-      "translations": {{
-        "hokkien": {{ "hanzi": "...", "romanization": "...", "english_meaning": "...", "tone": "..." }},
-        "cantonese": {{ "hanzi": "...", "romanization": "...", "english_meaning": "...", "tone": "..." }},
-        "hakka": {{ "hanzi": "...", "romanization": "...", "english_meaning": "...", "tone": "..." }},
-        "hainan": {{ "hanzi": "...", "romanization": "...", "english_meaning": "...", "tone": "..." }},
-        "malay": {{ "script": "...", "romanization": "...", "english_meaning": "...", "tone": "..." }},
-        "kelate": {{ "script": "...", "romanization": "...", "english_meaning": "...", "tone": "..." }}
-      }}
-    }}
-  ]
+  "slang_detected": "The core slang word or phrase normalized",
+  "literal_translation": "Direct, simple meaning (Urban Dictionary style definition)",
+  "analogies": [
+    "A highly relatable cultural analogy tailored specifically to the '{user_vibe}' vibe. (e.g., If Penang Hokkien, compare it to local food, Jelutong market, or Kopitiam dynamics. Use their cultural lens).",
+    "A relatable pop-culture or historical analogy tailored specifically for a {user_generation}. (e.g., If Boomer, compare to P. Ramlee, old radio shows, or 70s daily life. If Gen X, use 90s pop culture/VHS tape analogies)."
+  ],
+  "ambiguity_warning": "If the word has conflicting cultural or literal meanings (like 'Payung' or '6 7'), explain the different contexts briefly. Otherwise, output null."
 }}
-""" 
+"""
 
-def generate_translations(text):
-    print(f"🧠 Asking Gemini: '{text}'")
+AUDIO_ANALOGY_PROMPT = """
+You are GenBridge, a master cultural translator. 
+The user belongs to the {user_generation} generation and their cultural background / dialect vibe is {user_vibe}. 
+
+Listen to the attached audio containing slang (e.g., Gen Z/Alpha brainrot, Manglish, Hokkien).
+
+**CRITICAL INSTRUCTIONS:**
+1. **NATIVE SCRIPT:** When writing the detected slang, you MUST use the original native script of the spoken language (e.g., use 漢字/Hanzi for Chinese/Hokkien like "你好". Do NOT use Pinyin like "ni hao").
+2. **PRESERVE TITLES:** Do not ignore words like "Uncle", "Auntie", or "Bro" if they are spoken.
+
+Return a strict JSON object with this exact schema:
+{{
+  "slang_detected": "The core slang phrase spoken in its NATIVE script (e.g., '你好 Uncle').",
+  "literal_translation": "Direct, simple meaning in English",
+  "analogies": [
+    "A highly relatable cultural analogy tailored specifically to the '{user_vibe}' vibe.",
+    "A relatable pop-culture or historical analogy tailored specifically for a {user_generation}."
+  ],
+  "ambiguity_warning": "If the word has conflicting cultural or literal meanings, explain briefly. Otherwise, output null."
+}}
+"""
+
+async def generate_analogy(slang_text: str, user_generation: str, user_vibe: str):
+    """
+    Takes a slang word/phrase and generates culturally tailored analogies
+    based on the user's generation and dialect/vibe.
+    """
+    print(f"🧠 GenBridge Analogy: '{slang_text}' | Gen: {user_generation} | Vibe: {user_vibe}")
     try:
+        prompt = ANALOGY_PROMPT.format(
+            slang_text=slang_text,
+            user_generation=user_generation,
+            user_vibe=user_vibe,
+        )
+
         response = client.models.generate_content(
             model="gemini-3-flash-preview",
-            contents=ONE_SHOT_PROMPT.format(text=text),
+            contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                temperature=0.6, # Balanced creativity
-                safety_settings=[
-                    types.SafetySetting(
-                        category="HARM_CATEGORY_HATE_SPEECH",
-                        threshold="BLOCK_NONE"
-                    ),
-                    types.SafetySetting(
-                        category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                        threshold="BLOCK_NONE"
-                    ),
-                    types.SafetySetting(
-                        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                        threshold="BLOCK_NONE"
-                    ),
-                    types.SafetySetting(
-                        category="HARM_CATEGORY_HARASSMENT",
-                        threshold="BLOCK_NONE"
-                    )
-                ]
-            )
+                temperature=0.7,
+            ),
         )
         return json.loads(response.text)
     except Exception as e:
-        print(f"❌ AI Error: {e}")
-        return {"is_ambiguous": False, "results": []}
+        print(f"❌ GenBridge Error: {e}")
+        return {
+            "slang_detected": slang_text,
+            "literal_translation": "Error generating translation",
+            "analogies": [],
+            "ambiguity_warning": str(e),
+        }
+
+async def generate_analogy_audio(audio_bytes: bytes, mime_type: str, user_generation: str, user_vibe: str):
+    """
+    Takes raw audio of a slang word and directly generates culturally tailored analogies in one shot.
+    """
+    print(f"🎙️ Audio Analogy | Gen: {user_generation} | Vibe: {user_vibe} | Size: {len(audio_bytes)} bytes")
+    try:
+        prompt = AUDIO_ANALOGY_PROMPT.format(
+            user_generation=user_generation,
+            user_vibe=user_vibe,
+        )
+
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=[
+                types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
+                prompt
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.6,
+            ),
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"❌ Audio Analogy Error: {e}")
+        raise e

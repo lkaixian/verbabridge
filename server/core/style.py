@@ -1,99 +1,116 @@
 import json
 from google.genai import types
-from core.client import client  # Import shared client
+from core.client import client
 
-# --- STYLE TRANSFER PROMPT (RIZZETA SEMANTIC) ---
-STYLE_PROMPT = """
-You are a "Cultural Method Actor" and **Linguistic Anthropologist**.
-Your goal is to **rewrite** the input text by mapping its **underlying semantics** to the target Persona/Style.
-**CRITICAL INSTRUCTION:** Be **AUTHENTIC**. Do not just swap words; swap the *cognitive framework* of the speaker.
+# --- LIVE TRANSLATION PROMPT ---
+LIVE_TRANSLATE_PROMPT = """
+You are the GenBridge Linguistic Anthropologist and Empathy Translator.
+Your goal is to bridge the generational gap by translating modern internet slang (Gen Z/Alpha brainrot) into clear, respectful, and natural language that a senior citizen can easily understand.
 
-Input Text: "{text}"
-Target Style: "{style}"
+**CRITICAL INSTRUCTION:** Do not just swap words; translate the *underlying semantic meaning* into the cognitive framework and linguistic style of the target {user_vibe}.
 
-### 🎭 STYLE GUIDELINES:
+Input text (may contain slang): "{live_text}"
+Target Audience Vibe: "{user_vibe}"
 
-1. **"Gen Alpha" (The Rizzeta Protocol)**:
-   - **SEMANTIC FIELD A: The Culinary Spectrum (Success vs. Failure)**
-     - *Concept: Failure/Doom* -> Map to **"Cooked"** (passive state) or **"Fanum Tax"** (resource loss).
-     - *Concept: Success/Competence* -> Map to **"Ate"** (active consumption) or **"Left no crumbs"** (total completion).
-     - *Concept: Food/Quality* -> Map to **"Bussin"** or **"Grimace Shake"** (dangerous/weird).
-     - *Concept: The King/Alpha* -> Map to **"Duke Dennis"** or **"Baby Gronk"**.
-     - *Concept: The Queen/Ideal* -> Map to **"Livvy Dunne"**.
-     - *Concept: The Villain/Weirdo* -> Map to **"Skibidi Toilet"** or **"Ohio Final Boss"**.
-     - *Concept: The Betrayal* -> Map to **"Fanum Tax"** (Theft of food/resources).
+### 🧠 TRANSLATION & SEMANTIC MAPPING LOGIC:
 
-   - **SEMANTIC FIELD B: Metaphysical Metrics (Status & Presence)**
-     - *Concept: Social Value* -> Map to **"Aura"** (points system: +/-).
-     - *Concept: Charisma/Attraction* -> Map to **"Rizz"** (W/L) or **"Mogging"** (visual dominance).
-     - *Concept: Physical Appearance* -> Map to **"Looksmaxxing"**, **"Mewing"** (Jawline), **"Mogging"** (Dominating).
-     - *Concept: Mediocrity* -> Map to **"NPC"** or **"Mid"**.
+1. **Identify the Modern Lore (Source Semantics):**
+   - Analyze the input for Gen Z/Alpha terminology (e.g., "Skibidi", "Rizz", "Cooked", "Gyatt", "Fanum Tax", "Bussin", "No Cap", "Mewing", "NPC").
+   - Determine the core concept (e.g., "Bro is cooked" = The subject is in a hopeless or failing situation).
 
-   - **SEMANTIC FIELD C: Syntactic Structures (The "Vibe")**
-     - **The "Bro" Subject:** Replace pronouns (I/He/She) with **"Bro"**, **"Blud"**, or **"Lil bro"**.
-     - **The "Not Me" Inversion:** Use "Not me [doing X]" for embarrassing admissions.
-     - **The "It's Giving" Simile:** Use "It's giving [Abstract Vibe]" for descriptions.
-     - **The "Imagine" Imperative:** Start mocking sentences with "Imagine [doing X] 💀".
-     - **The "Brainrot" Filler:** Use "Chat is this real?", "English or Spanish?", "Those who know 💀".
+2. **Map to Senior-Friendly Concepts (Target Semantics):**
+   - Shift the concept from internet chaos to grounded reality.
+   - *Example:* "Rizz" (Charisma) -> "Sweet-talker", "Pandai mengayat", or "Very charming".
+   - *Example:* "Bussin" (Delicious) -> "Extremely tasty", "Sedap gila", or "Ho chiak".
+   - *Example:* "Cooked" (Doomed) -> "In big trouble", "Habis lah", or "Cham liao".
+   - *Example:* "Cap" (Lie) -> "Telling tall tales", "Bohong", or "Tipu".
 
-   - **Grammar:** Lowercase aesthetic. No punctuation except 💀, 😭, or 🗿.
+3. **Apply the Target "{user_vibe}" (Linguistic Formatting):**
+   - **Standard English:** Use polite, proper grammar suitable for a grandparent. Keep it dignified (e.g., "Oh dear, he is in quite a bit of trouble.").
+   - **Manglish / Malaysian Vibe:** Use natural local syntax, ending with appropriate soft particles. Sound like a polite younger person talking to an elder (e.g., "Aiyo uncle, he is in big trouble lah.").
+   - **Penang Hokkien (Polite):** Structure the sentence the way an older uncle/aunty would speak. Use familiar syntax and concepts (e.g., "Wa tell you, he is very cham now.").
+   - **Malay:** Use "sopan santun" (polite) phrasing suitable for chatting with a Pak Cik or Mak Cik (e.g., "Aduhai pak cik, budak tu dah susah sekarang.").
+   - **Cantonese:** Use conversational, polite auntie/uncle expressions (e.g., "Aiya, he is really dim now.").
 
-2. **"Ah Beng (Penang)" (Hokkien Grammatical Structure)**:
-   - **SOURCE OF TRUTH:** Use **Penang Hokkien (Taiji Romanisation)** grammar rules.
-   - **PRONOUN MAPPING (Crucial):**
-     - I / Me -> **"Wa"** (or "Gua").
-     - You -> **"Lu"**.
-     - He / She -> **"Ee"**.
-     - We -> **"Wa-lang"**.
-     - They -> **"Ee-lang"**.
-   - **GRAMMAR & SYNTAX RULES:**
-     - **Possessive Particle (-eh):** Use "-eh" for "my/your".
-       - *Example:* "My car" -> "Wa-eh car" (NOT "My car").
-     - **Question Syntax:** Put particles at the end.
-       - *Example:* "Are you eating?" -> "Lu chiak pa bo?" (You eat full no?)
-       - *Example:* "Is it true?" -> "Sien eh ah?" (Real one ah?)
-     - **Negative Construction:**
-       - "Don't want" -> **"Mai"**.
-       - "No have" -> **"Bo"**.
-       - "Cannot" -> **"Tak boleh"** (Malay loan) or **"Beh sai"**.
-   - **VIBE & PARTICLES:**
-     - Use **"Lah"** (Assurance), **"Mah"** (Obviousness), **"Lor"** (Resignation).
-     - **Sentence Ending:** Often ends with "one" for emphasis.
-       - *Example:* "Why are you like this?" -> "Walao, why lu liddat one?"
-   - **Vocabulary:** Lanjiao, Cibai, Walao eh, Abuden, kanninah.
+### 📝 TASK EXECUTION:
+1. Extract the specific slang words used in the input.
+2. Rewrite the ENTIRE sentence to be highly respectful, easily digestible, and perfectly aligned with the linguistic rules of the {user_vibe}.
 
-3. **"Mak Cik (Gossip)" (Dramatic Narrative)**:
-   - **Semantic Logic:** Hyperbolic concern masked as curiosity.
-   - **Keywords:** Astaga, Uish, Panas, Kena tangkap basah.
-   - **Structure:** Rhetorical questions ("You know tak?").
-
-4. **"Corporate Wayang" (Obfuscation)**:
-   - **Semantic Logic:** Using many words to say nothing (Professional Euphemisms).
-   - **Keywords:** Circle back, Synergize, Deep dive, Bandwidth, Touch base.
-
-### 📝 TASK:
-1. **Semantic Analysis:** Identify the *Core Concept* (e.g., "I made a mistake" = Self-inflicted Failure).
-2. **Linguistic Mapping:** Map "Self-inflicted Failure" to the Gen Alpha Semantic Field (Failure -> "Cooked" / "Negative Aura").
-3. **Syntactic Rewrite:** Apply the sentence structure (e.g., "Bro is cooked 💀").
-
-OUTPUT STRICT JSON:
+Return ONLY a strict JSON object with this exact schema:
 {{
-  "original": "{text}",
-  "style": "{style}",
-  "translated_text": "...",
-  "explanation": "Explain the semantic shift (e.g., 'Mapped [Failure] to [Cooked] per Rizzeta Protocol')."
+  "translated_text": "The fully translated, polite, senior-friendly sentence mapped to the {user_vibe}.",
+  "highlight_words": ["slang_word_1", "slang_word_2"]
 }}
 """
 
-def translate_style(text, target_style):
-    print(f"🎨 Style Transfer ({target_style}): '{text}'")
+
+async def live_translate(live_text: str, user_vibe: str):
+    """
+    Translates modern slang text into polite, senior-friendly language
+    tailored to the user's cultural background.
+    """
+    print(f"🔴 Live Translate: '{live_text}' | Vibe: {user_vibe}")
     try:
+        prompt = LIVE_TRANSLATE_PROMPT.format(
+            live_text=live_text,
+            user_vibe=user_vibe,
+        )
+
         response = client.models.generate_content(
             model="gemini-3-flash-preview",
-            contents=STYLE_PROMPT.format(text=text, style=target_style),
-            config=types.GenerateContentConfig(response_mime_type="application/json")
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.5,
+            ),
         )
         return json.loads(response.text)
     except Exception as e:
-        print(f"❌ Style Error: {e}")
-        return {"error": str(e)}
+        print(f"❌ Live Translate Error: {e}")
+        return {
+            "translated_text": live_text,
+            "highlight_words": [],
+        }
+
+# --- LIVE TRANSLATION PROMPT (AUDIO) ---
+AUDIO_TRANSLATE_PROMPT = """
+You are the GenBridge Linguistic Anthropologist. 
+The user's cultural background target is: {user_vibe}
+
+Listen to the attached audio.
+1. TRANSCRIBE: Transcribe exactly what was said. Use the NATIVE SCRIPT for the language spoken (e.g., Hanzi for Chinese/Hokkien, proper spelling for Malay). Keep English titles like "Uncle" or "Bro" intact.
+2. TRANSLATE: Translate the ENTIRE meaning of the sentence into natural, fluent language suitable for a senior citizen with a {user_vibe} background. 
+3. SEMANTIC OVERRIDE (CRITICAL): Translate the MEANING fluently. Do not do a broken word-for-word translation. (e.g., If the input is Hokkien "Uncle, lu jiak pa bui" and the target vibe is Manglish, output a fluent Manglish equivalent like "Uncle, you makan already ah?" or "Uncle, you eat already?").
+4. ZERO DROP RULE (CRITICAL): Always preserve the titles and names (Uncle, Auntie, Bro). Never delete them.
+5. IDENTITY RULE (CRITICAL): If the spoken audio perfectly matches the {user_vibe} already, just output the full transcribed text as the translated text. DO NOT truncate.
+
+Return ONLY a strict JSON object with this exact schema:
+{{
+  "original_transcription": "The exact words spoken.",
+  "translated_text": "The FULL, complete, fluent translated sentence.",
+  "highlight_words": ["slang_word_1"]
+}}
+"""
+async def live_translate_audio(audio_bytes: bytes, mime_type: str, user_vibe: str):
+    """
+    Sends raw audio to Gemini to transcribe and translate in one shot.
+    """
+    print(f"🎙️ Live Audio Translate | Vibe: {user_vibe} | Size: {len(audio_bytes)} bytes")
+    try:
+        prompt = AUDIO_TRANSLATE_PROMPT.format(user_vibe=user_vibe)
+
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview", # Flash models are incredibly fast at audio
+            contents=[
+                types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
+                prompt
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.4, # Lower temperature for better transcription accuracy
+            ),
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        print(f"❌ Audio Translate Error: {e}")
+        raise e
