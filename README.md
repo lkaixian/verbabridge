@@ -1,88 +1,124 @@
-# VerbaBridge
-
-A small Flutter app with a Python backend that provides AI/caching services and serves static UI for demos.
-
-## Project structure
-
-- `lib/` - Flutter app source (screens, tabs, services)
-- `server/` - Python backend (main.py, core modules, static assets)
-- `android/`, `ios/`, `windows/` - platform-specific build files
-
-## Tech Stack
-
-- Mobile: Flutter (Dart)
-- Backend: Python (FastAPI + Uvicorn)
-- Auth & DB: Firebase (Authentication, Firestore)
-- Integrations: Google Sign-In, device camera plugins (e.g. mobile_scanner)
-- Caching: local JSON cache (`server/cache_data/`)
-
-## Mermaid: Tech Stack Diagram
-
-```mermaid
-graph LR
-  subgraph Mobile_App[Mobile App]
-    FlutterApp[Flutter App (Dart)]
-    FlutterApp -->|Auth & DB| Firebase[Firebase (Auth, Firestore)]
-    FlutterApp -->|Sign-in| GoogleSignIn[Google Sign-In]
-    FlutterApp -->|Camera/Scanner| MobileScanner[mobile_scanner plugin]
-  end
-
-  subgraph Backend[Backend]
-    FastAPI[FastAPI (Python)]
-    FastAPI -->|Serves| Static[Static files (server/static/)]
-    FastAPI -->|Uses| AI[AI Module (server/core/ai.py)]
-    FastAPI -->|Caches| Cache[Cache Layer (server/cache.py)]
-    FastAPI -->|Runs on| Uvicorn[Uvicorn]
-  end
-
-  Firebase -->|Service Account| Firestore[Firestore]
-  FlutterApp -->|HTTP/API calls| FastAPI
-  Cache -->|JSON files| CacheData[server/cache_data/*.json]
-  AI -->|Loads| CacheData
-
-  style Mobile_App fill:#f9f,stroke:#333,stroke-width:1px
-  style Backend fill:#9ff,stroke:#333,stroke-width:1px
-```
-
-## Quick run (local)
-
-- Run backend (from `server/`):
-
-```powershell
-cd server
-uvicorn main:app --reload
-```
-
-- Run Flutter app (from project root):
-
-```powershell
-flutter run
-```
-
-## Notes
-
-- Backend stores cached API responses in `server/cache_data/` as JSON.
-- `server/serviceAccountKey.json` is used to authenticate with Firebase for server-side operations.
 # 🌉 VerbaBridge (Backend)
 
 **The Linguistic Bridge for Cultural Preservation & Digital Inclusion**
 
-VerbaBridge is a powerful FastAPI backend designed to break down cultural and generational language barriers. Built as a Tech 4 Good initiative, it empowers traditional B40 food vendors—like aging Kopitiam owners in Penang—to instantly digitize their menus without technical skills, while allowing tourists to interact with local culture using AI-driven context translation.
+VerbaBridge is a powerful FastAPI backend designed to break down cultural and generational language barriers.
 
-## 🚀 Key Features
+## 📚 API Architecture
 
-* **The "Rizzeta Stone" Protocol:** A novel linguistic framework powered by Gemini 3 Flash that bridges the generational gap, dynamically translating standard English into highly contextual **Gen Alpha Semantics** (Brainrot).
-* **Cultural Context Engine:** Preserves local heritage by supporting hyper-local dialects, including **Ah Beng (Penang Hokkien)** and **Mak Cik Bawang (Dramatic Gossip)**.
-* **Zero-Friction Merchant Portal:** A built-in web dashboard (`/admin`) that allows traditional vendors to auto-generate dynamic QR menus that sync directly to Firebase—no app installation required for the merchant.
-* **Multimodal AI Menu Extraction:** Vendors simply upload a photo of a messy, handwritten menu. The system uses Gemini's spatial vision to extract the items and automatically rewrites them into "Michelin-star" dramatic food descriptions.
-* **Smart Edge Caching:** Implements a JSON-based caching layer to drastically reduce API latency and optimize cloud quota usage.
+**Analogy & Translation Endpoints:**
 
-## 🏗️ Tech Stack
+- `POST /generate_analogy` — Takes a slang word and generates personalized cultural analogies based on the user's generation, vibe/dialect, and preferred language.
 
-* **Framework:** FastAPI (Python)
-* **AI Engine:** Google Gemini (3.1 Pro / Flash Preview) via `google-genai`
-* **Database:** Firebase Firestore (via `firebase-admin` SDK)
-* **QR Generation:** Python `qrcode`
+- `POST /live_translate` — Translates slang text into polite, senior-friendly language in real time.
+
+- `POST /live_translate_audio` — Receives an audio file (m4a), sends it to Gemini for transcription, and returns the transcription + translated text.
+
+- `POST /generate_analogy_audio` — Receives an audio file and directly returns Analogy swipe card data (one-shot voice lookup).
+
+- `GET /api/tts` — Text-to-Speech: Generates audio from text using Gemini and returns raw PCM audio bytes.
+
+**User Data Endpoints:**
+
+- `POST /api/save_word` — Saves a slang word, its literal translation, and successful analogy to the user's vocabulary book in Firestore.
+
+- `GET /api/get_words/{user_id}` — Retrieves all saved words for a user, sorted by newest first.
+
+## 🏗️ Technical Architecture
+
+```mermaid
+flowchart TB
+    subgraph Client["📱 Flutter Mobile App"]
+        UI["UI Layer<br/>(Translate Tab, My Words, Profile)"]
+        API_SVC["ApiService<br/>(HTTP Client)"]
+        AUTH["Firebase Auth<br/>(Google Sign-In)"]
+        AUDIO_REC["Audio Recorder<br/>(record package)"]
+        AUDIO_PLAY["Audio Player<br/>(audioplayers + WAV wrapper)"]
+    end
+
+    subgraph Server["⚙️ FastAPI Backend"]
+        ROUTES["FastAPI Routes<br/>(main.py)"]
+        AI_MOD["AI Module<br/>(core/ai.py)"]
+        STYLE_MOD["Style Module<br/>(core/style.py)"]
+        CACHE_MOD["Cache Layer<br/>(core/cache.py)"]
+        TTS_MOD["TTS Engine<br/>(Gemini Native Audio)"]
+    end
+
+    subgraph External["☁️ External Services"]
+        GEMINI["Google Gemini 3.0<br/>(Flash Preview)"]
+        FIRESTORE["Firebase Firestore"]
+        CF["Cloudflare Tunnel"]
+    end
+
+    UI --> API_SVC
+    UI --> AUTH
+    UI --> AUDIO_REC
+    UI --> AUDIO_PLAY
+    API_SVC -->|HTTPS| CF -->|localhost:8000| ROUTES
+    ROUTES --> AI_MOD --> GEMINI
+    ROUTES --> STYLE_MOD --> GEMINI
+    ROUTES --> CACHE_MOD
+    ROUTES --> TTS_MOD --> GEMINI
+    ROUTES -->|save/get words| FIRESTORE
+    AUTH -->|sign-in| FIRESTORE
+```
+
+**Data Flow:**
+
+1. User types slang or records audio → Flutter sends request via `ApiService`
+2. Request travels through Cloudflare Tunnel to local FastAPI server
+3. Server checks the `FileSystemCache` (MD5-hashed JSON files) for cached responses
+4. On cache miss, the Gemini 3.0 Flash model processes the request with culturally-tuned prompts
+5. Response is cached and returned to Flutter for display as swipeable analogy cards
+
+## 🔧 Implementation Details
+
+### Gemini-Powered Analogy Engine (`core/ai.py`)
+
+The core of VerbaBridge is the **"Rizzeta Stone" Protocol** — a carefully engineered prompt framework that instructs Gemini to act as a "GenBridge Linguistic Anthropologist." Key design choices:
+
+- **Generation-aware analogies:** The prompt dynamically adjusts its references based on the user's selected generation (Boomer, Gen X, Millennial, Gen Z, Gen Alpha), producing culturally relevant comparisons
+- **Dialect/vibe system:** Supports cultural personas like "Ah Beng (Penang Hokkien)" and "Mak Cik Bawang (Dramatic Gossip)" that influence the tone and vocabulary of translations
+- **Multilingual output:** Responses are generated natively in English, Chinese (漢字/Hanzi), or Malay based on user preference
+- **Structured JSON output:** Uses Gemini's `response_mime_type="application/json"` to guarantee parseable responses with `slang_detected`, `literal_translation`, `analogies[]`, and `ambiguity_warning`
+
+### Smart Edge Caching (`core/cache.py`)
+
+A dual-mode `FileSystemCache` system optimizes API quota usage:
+
+- **Directory Mode (default):** Each unique query combination (`slang|generation|vibe|language`) is normalized, MD5-hashed, and stored as individual JSON files in `cache_data/`. This allows O(1) lookups without loading the entire cache into memory
+- **Single File Mode:** An alternative mode for simpler key-value lookups (e.g., OCR translations), storing everything in one JSON map file
+
+### Audio Pipeline
+
+The audio system involves two distinct paths:
+
+- **Recording:** Flutter's `record` package captures audio as `.m4a` (AAC-LC codec), which is uploaded as `multipart/form-data` to the server
+- **Transcription + Translation:** Gemini 3.0 Flash processes raw audio bytes with `Part.from_bytes()`, performing transcription and cultural translation in a single inference call
+- **Text-to-Speech:** Gemini's native audio modality generates speech from analogy text. The server returns raw PCM audio (`audio/L16` at 24kHz), which the Flutter client wraps with a WAV header before playback via `audioplayers`
+
+### Flutter Frontend Architecture
+
+- **State management:** Uses `StatefulWidget` with `TickerProviderStateMixin` for animation controllers (mic pulse, glow effects)
+- **Mode system:** Lookup mode (single word → analogy cards) and Live mode (continuous conversation translation) share the same language selector and mic infrastructure
+- **Swipe cards:** Custom gesture-based card system with drag physics, rotation transforms, and directional actions (left = next card, right = save to Firestore)
+
+## 🧗 Challenges Faced
+
+### 1. Raw PCM Audio Playback
+Gemini's TTS API returns raw PCM audio data (`audio/L16` at 24kHz) without headers. The `audioplayers` package cannot play headerless PCM streams. **Solution:** We implemented a `_createWavHeader()` function that generates a standard 44-byte WAV header and prepends it to the raw PCM bytes before playback using `BytesSource`.
+
+### 2. Prompt Engineering for Cultural Accuracy
+Getting Gemini to consistently produce culturally accurate analogies across three languages and multiple dialects required extensive prompt iteration:
+- **Zero Drop Rule:** Early prompts would silently drop English names/titles when translating to Chinese or Malay
+- **Identity Rule:** The model would unnecessarily paraphrase text that was already polite and in the correct language
+- **Native Script Enforcement:** Without explicit instructions, the model would romanize Chinese output (Pinyin) instead of using Hanzi characters
+
+### 3. Audio MIME Type Handling
+Flutter's HTTP client sends recorded audio files with a generic `application/octet-stream` content type. Gemini requires a proper audio MIME type to process the file. **Solution:** Server-side MIME type detection with forced fallback to `audio/mp4` for `.m4a` files.
+
+### 4. Cache Key Normalization
+Case-sensitivity and whitespace differences caused cache misses for identical queries. **Solution:** Input normalization (lowercase + trim) before MD5 hashing ensures "Skibidi" and "skibidi" hit the same cache entry.
 
 ## 🛠️ Local Setup Instructions
 
@@ -271,22 +307,12 @@ uvicorn main:app --reload
 **Client Side**:
 Download the binary from the releases and sign in with your own google account.
 
-## 📚 API Architecture
+## 🗺️ Future Roadmap
 
-**Core Translation Endpoints:**
-
-- POST /process_text - Deep Linguistic Analysis: Breaks down Kopitiam slang into literal, tonal, and phonetic mappings.
-
-- POST /translate_style - Vibe Engine: Applies specific cultural personas (Gen Alpha, Mak Cik Bawang, Penang Hokkien) to input text.
-
-- POST /process_image - AR Lens Mapping: Processes an image, runs OCR bounding boxes, and returns coordinate data for the Flutter frontend to overlay interactive AR translations.
-
-**Merchant & Infrastructure Endpoints:**
-
-- GET /admin - Serves the HTML Merchant Portal for vendor onboarding.
-
-- POST /api/extract_menu - Accepts an image upload (UploadFile) and uses Gemini Multimodal to extract and embellish handwritten menus.
-
-- POST /api/save_stall - Syncs vendor data securely to Firebase Firestore.
-
-- GET /api/generate_qr/{stall_id} - Generates and returns a downloadable PNG dynamic QR code on the fly.
+- **Offline Mode:** Bundle frequently cached translations for use without internet connectivity, critical for B40 vendors in areas with poor connectivity
+- **AR Lens Translation:** Use the device camera to scan and overlay real-time slang translations on signage, menus, and social media screenshots
+- **Multi-Generational Profiles:** Allow users to save multiple generation presets (e.g., "For Grandma" vs "For Dad") for quick switching
+- **Community-Sourced Slang Database:** Let users submit and vote on new slang terms to keep the system current with rapidly evolving internet culture
+- **Conversation History:** Persist live translation sessions so users can review past conversations
+- **Expanded Language Support:** Add Tamil, Thai, Tagalog, and other Southeast Asian languages to serve the broader ASEAN community
+- **Merchant QR Menu System:** Enable traditional food vendors to photograph handwritten menus and auto-generate dynamic digital QR menus synced to Firebase
