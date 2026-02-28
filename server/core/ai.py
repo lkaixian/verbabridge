@@ -119,3 +119,46 @@ async def generate_analogy_audio(audio_bytes: bytes, mime_type: str, user_genera
     except Exception as e:
         print(f"❌ Audio Analogy Error: {e}")
         raise e
+
+async def generate_gemini_tts(text: str, language: str):
+    """Uses Gemini's native audio modality to generate TTS."""
+    print(f"🔊 Generating TTS | Lang: {language} | Text: {text[:30]}...")
+    try:
+        # Prompt it to read naturally
+        prompt = f"Read the following text aloud naturally and fluently in {language}. Do not add any extra commentary. Text: {text}"
+        
+        # We use 2.5-flash as it is the most stable for pure TTS generation
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-preview-tts", 
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                # CRITICAL: You MUST provide a voice config for Audio generation to work
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name="Aoede" # Aoede is a highly expressive polyglot voice
+                        )
+                    )
+                ),
+            ),
+        )
+        
+        # 1. Check if the AI blocked the prompt due to safety filters
+        if not response.candidates or not response.candidates[0].content:
+            print("⚠️ TTS Blocked: The AI refused to speak this text (likely safety filters).")
+            raise ValueError("Audio blocked by safety filters.")
+            
+        # 2. Safely loop through the parts to find the actual audio bytes
+        for part in response.candidates[0].content.parts:
+            if part.inline_data and part.inline_data.data:
+                # CRITICAL FIX: Return BOTH the audio bytes and the exact MIME type
+                return part.inline_data.data, part.inline_data.mime_type
+                
+        fallback_text = response.text if response.text else "Unknown Output"
+        print(f"⚠️ TTS failed. Model returned text instead: {fallback_text}")
+        raise ValueError("Model failed to return audio bytes.")
+        
+    except Exception as e:
+        print(f"❌ TTS Error: {e}")
+        raise e

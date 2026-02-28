@@ -31,9 +31,19 @@ class _TranslateTabState extends State<TranslateTab>
   late final AudioRecorder _audioRecorder;
   String? _audioPath;
 
+  String _preferredLanguage = 'en';
+
   @override
   void initState() {
     super.initState();
+    final String defaultLocale = Platform.localeName.split('_')[0];
+    if (defaultLocale == 'zh') {
+      _preferredLanguage = 'ch';
+    } else if (defaultLocale == 'ms') {
+      _preferredLanguage = 'ms';
+    } else {
+      _preferredLanguage = 'en'; // Default fallback
+    }
     _audioRecorder = AudioRecorder();
     _textController.addListener(() => setState(() {}));
     _pulseController = AnimationController(
@@ -107,6 +117,7 @@ class _TranslateTabState extends State<TranslateTab>
         slangText: typed,
         userGeneration: UserProfile.generation ?? 'Boomer',
         userVibe: UserProfile.dialect ?? 'Standard English',
+        preferredLanguage: _preferredLanguage, // FIXED: Added this
       ).timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
@@ -122,6 +133,7 @@ class _TranslateTabState extends State<TranslateTab>
         literal,
         analogies,
         warning,
+        _preferredLanguage, // FIXED: Added this
       );
       _textController.clear();
     } catch (e) {
@@ -140,6 +152,7 @@ class _TranslateTabState extends State<TranslateTab>
       final result = await ApiService.liveTranslate(
         text: text,
         userVibe: UserProfile.dialect ?? 'Standard English',
+        preferredLanguage: _preferredLanguage, // FIXED: Added this
       ).timeout(const Duration(seconds: 10));
 
       if (!mounted) return;
@@ -215,6 +228,7 @@ class _TranslateTabState extends State<TranslateTab>
           final result = await ApiService.liveTranslateAudio(
             filePath: path,
             userVibe: UserProfile.dialect ?? 'Standard English',
+            preferredLanguage: _preferredLanguage, // FIXED: Added this
           );
 
           if (!mounted) return;
@@ -238,6 +252,7 @@ class _TranslateTabState extends State<TranslateTab>
             filePath: path,
             userGeneration: UserProfile.generation ?? 'Boomer',
             userVibe: UserProfile.dialect ?? 'Standard English',
+            preferredLanguage: _preferredLanguage, // FIXED: Added this
           );
 
           if (!mounted) return;
@@ -255,6 +270,7 @@ class _TranslateTabState extends State<TranslateTab>
             literal,
             analogies,
             warning,
+            _preferredLanguage, // FIXED: Added this
           );
         }
 
@@ -280,6 +296,40 @@ class _TranslateTabState extends State<TranslateTab>
     _textController.text = slang;
     setState(() => _isLiveMode = false);
     _handleLookup();
+  }
+
+  Widget _buildLanguageSelector() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          const Icon(Icons.language, color: Colors.grey, size: 18),
+          const SizedBox(width: 8),
+          DropdownButton<String>(
+            value: _preferredLanguage,
+            dropdownColor: Colors.grey.shade900,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+            underline: const SizedBox(),
+            icon: const Icon(
+              Icons.arrow_drop_down,
+              color: Colors.deepOrangeAccent,
+            ),
+            items: const [
+              DropdownMenuItem(value: 'en', child: Text("English")),
+              DropdownMenuItem(value: 'ch', child: Text("Chinese")),
+              DropdownMenuItem(value: 'ms', child: Text("Malay")),
+            ],
+            onChanged: (val) {
+              if (val != null) setState(() => _preferredLanguage = val);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPillToggle() {
@@ -352,6 +402,7 @@ class _TranslateTabState extends State<TranslateTab>
       padding: const EdgeInsets.only(bottom: 30),
       child: Column(
         children: [
+          _buildLanguageSelector(), // FIXED: Added Language Selector Here
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: TextField(
@@ -516,6 +567,7 @@ class _TranslateTabState extends State<TranslateTab>
   Widget _buildLiveMode() {
     return Column(
       children: [
+        _buildLanguageSelector(), // FIXED: Added Language Selector Here
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'services/api_service.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 /// Shows the AnalogySwipeCards overlay with REAL data from the API.
 void showAnalogyCardsFromApi(
@@ -9,6 +10,7 @@ void showAnalogyCardsFromApi(
   String literalTranslation,
   List<String> analogies,
   String? ambiguityWarning,
+  String preferredLanguage, // <--- ADDED THIS
 ) {
   final List<Map<String, String>> cards = [
     {'title': 'Literal Meaning', 'body': literalTranslation, 'emoji': '📖'},
@@ -40,6 +42,7 @@ void showAnalogyCardsFromApi(
       word: slangDetected,
       analogies: cards,
       literalTranslation: literalTranslation,
+      preferredLanguage: preferredLanguage, // <--- PASSED IT DOWN
     ),
   );
 }
@@ -48,12 +51,14 @@ class AnalogySwipeCards extends StatefulWidget {
   final String word;
   final List<Map<String, String>> analogies;
   final String literalTranslation;
+  final String preferredLanguage;
 
   const AnalogySwipeCards({
     super.key,
     required this.word,
     required this.analogies,
     required this.literalTranslation,
+    this.preferredLanguage = 'en',
   });
 
   @override
@@ -66,6 +71,43 @@ class _AnalogySwipeCardsState extends State<AnalogySwipeCards> {
   double _dragRotation = 0;
   bool _isDragging = false;
   bool _isSaving = false;
+
+  // --- AUDIO PLAYER STATE ---
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlayingAudio = false;
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // Always clean up the audio player!
+    super.dispose();
+  }
+
+  // --- PLAY GEMINI TTS ---
+  Future<void> _playCardAudio(String text) async {
+    if (_isPlayingAudio) {
+      await _audioPlayer.stop();
+      setState(() => _isPlayingAudio = false);
+      return;
+    }
+
+    setState(() => _isPlayingAudio = true);
+    try {
+      // NOTE: Make sure 'baseUrl' in your ApiService is accessible (e.g. static const String baseUrl = ...)
+      final url =
+          '${ApiService.baseUrl}/api/tts?text=${Uri.encodeComponent(text)}&language=${widget.preferredLanguage}';
+
+      await _audioPlayer.play(UrlSource(url));
+
+      _audioPlayer.onPlayerComplete.listen((event) {
+        if (mounted) setState(() => _isPlayingAudio = false);
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isPlayingAudio = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to load audio: $e")));
+    }
+  }
 
   void _onPanStart(DragStartDetails details) {
     setState(() => _isDragging = true);
@@ -94,6 +136,12 @@ class _AnalogySwipeCardsState extends State<AnalogySwipeCards> {
   }
 
   void _handleSwipeLeft() {
+    // Stop audio if they swipe away while it's playing
+    if (_isPlayingAudio) {
+      _audioPlayer.stop();
+      _isPlayingAudio = false;
+    }
+
     if (_currentIndex < widget.analogies.length - 1) {
       setState(() {
         _currentIndex++;
@@ -107,6 +155,12 @@ class _AnalogySwipeCardsState extends State<AnalogySwipeCards> {
   }
 
   Future<void> _handleSwipeRight() async {
+    // Stop audio if they swipe away while it's playing
+    if (_isPlayingAudio) {
+      _audioPlayer.stop();
+      _isPlayingAudio = false;
+    }
+
     final analogy = widget.analogies[_currentIndex];
     setState(() => _isSaving = true);
 
@@ -209,7 +263,6 @@ class _AnalogySwipeCardsState extends State<AnalogySwipeCards> {
                 ..rotateZ(_dragRotation),
               child: Container(
                 width: double.infinity,
-                // Ensures the card has a reasonable height but doesn't overflow screen
                 height: MediaQuery.of(context).size.height * 0.55,
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
@@ -225,9 +278,27 @@ class _AnalogySwipeCardsState extends State<AnalogySwipeCards> {
                 ),
                 child: Column(
                   children: [
-                    Text(
-                      analogy['emoji'] ?? '📖',
-                      style: const TextStyle(fontSize: 48),
+                    // --- EMOJI & AUDIO BUTTON ROW ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          analogy['emoji'] ?? '📖',
+                          style: const TextStyle(fontSize: 48),
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          onPressed: () =>
+                              _playCardAudio(analogy['body'] ?? ''),
+                          icon: Icon(
+                            _isPlayingAudio
+                                ? Icons.stop_circle
+                                : Icons.volume_up,
+                            color: Colors.deepOrangeAccent,
+                            size: 36,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -240,7 +311,6 @@ class _AnalogySwipeCardsState extends State<AnalogySwipeCards> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // CRITICAL FIX: Expanded + SingleChildScrollView prevents long text from breaking layout
                     Expanded(
                       child: SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),

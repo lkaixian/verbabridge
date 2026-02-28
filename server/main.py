@@ -7,12 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from firebase_admin import credentials, firestore
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from fastapi import UploadFile, File, Form
+from fastapi import UploadFile, File, Form, Response
 
 # --- MODULAR IMPORTS ---
 from core.cache import FileSystemCache
 from core.style import live_translate, live_translate_audio
-from core.ai import generate_analogy, generate_analogy_audio
+from core.ai import generate_analogy, generate_analogy_audio, generate_gemini_tts
 from core.style import live_translate
 
 # --- SETUP & LOGGING ---
@@ -56,6 +56,16 @@ class SaveWordInput(BaseModel):
     slang_word: str
     literal_translation: str
     successful_analogy: str
+class AnalogyInput(BaseModel):
+    slang_text: str
+    user_generation: str
+    user_vibe: str
+    preferred_language: str = "en"
+
+class LiveTranslateInput(BaseModel):
+    text: str
+    user_vibe: str
+    preferred_language: str = "en"
 
 # --- ROUTES ---
 
@@ -153,7 +163,8 @@ async def api_get_words(user_id: str):
 @app.post("/live_translate_audio")
 async def api_live_translate_audio(
     file: UploadFile = File(...),
-    user_vibe: str = Form(...)
+    user_vibe: str = Form(...),
+    preferred_language: str = Form("en")
 ):
     """Receives an audio file, sends it to Gemini, and returns the transcription + translation."""
     logger.info(f"🎤 Receiving Audio: {file.filename} | Vibe: {user_vibe}")
@@ -181,7 +192,8 @@ async def api_live_translate_audio(
 async def api_generate_analogy_audio(
     file: UploadFile = File(...),
     user_generation: str = Form(...),
-    user_vibe: str = Form(...)
+    user_vibe: str = Form(...),
+    preferred_language: str = Form("en")
 ):
     """Receives an audio file and directly returns the Analogy swipe card data."""
     logger.info(f"🎤 Receiving Analogy Audio: {file.filename}")
@@ -198,3 +210,16 @@ async def api_generate_analogy_audio(
     except Exception as e:
         logger.error(f"Audio Analogy Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate audio analogy")
+    
+@app.get("/api/tts")
+async def api_generate_tts(text: str, language: str):
+    """Generates Audio from text using Gemini and returns the raw bytes."""
+    try:
+        # Catch both variables returned from ai.py
+        audio_bytes, actual_mime_type = await generate_gemini_tts(text, language)
+        
+        # Use the actual mime type (e.g., 'audio/wav') instead of hardcoding mp3!
+        return Response(content=audio_bytes, media_type=actual_mime_type)
+    except Exception as e:
+        logger.error(f"TTS Error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate audio")

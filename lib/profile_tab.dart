@@ -28,6 +28,7 @@ class _ProfileTabState extends State<ProfileTab> {
     {'label': 'Gen X', 'emoji': '📼', 'years': '1965–1980'},
     {'label': 'Gen Y', 'emoji': '💿', 'years': '1981–1996'},
     {'label': 'Gen Z', 'emoji': '📱', 'years': '1997–2012'},
+    {'label': 'Gen Alpha', 'emoji': '👶', 'years': '2013–Present'},
   ];
 
   final List<Map<String, String>> _dialects = [

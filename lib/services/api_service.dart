@@ -12,6 +12,7 @@ class ApiService {
     required String slangText,
     required String userGeneration,
     required String userVibe,
+    required String preferredLanguage,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/generate_analogy'),
@@ -20,6 +21,7 @@ class ApiService {
         'slang_text': slangText,
         'user_generation': userGeneration,
         'user_vibe': userVibe,
+        'preferred_language': preferredLanguage,
       }),
     );
 
@@ -34,6 +36,7 @@ class ApiService {
   static Future<Map<String, dynamic>> liveTranslate({
     required String text,
     required String userVibe,
+    required String preferredLanguage,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/live_translate'),
@@ -91,13 +94,14 @@ class ApiService {
   static Future<Map<String, dynamic>> liveTranslateAudio({
     required String filePath,
     required String userVibe,
+    required String preferredLanguage,
   }) async {
     final uri = Uri.parse('$baseUrl/live_translate_audio');
     final request = http.MultipartRequest('POST', uri);
 
     request.fields['user_vibe'] = userVibe;
+    request.fields['preferred_language'] = preferredLanguage;
 
-    // --- THE FIX IS HERE ---
     // Explicitly tell the server this is an m4a audio file
     request.files.add(
       await http.MultipartFile.fromPath(
@@ -124,12 +128,14 @@ class ApiService {
     required String filePath,
     required String userGeneration,
     required String userVibe,
+    required String preferredLanguage,
   }) async {
     final uri = Uri.parse('$baseUrl/generate_analogy_audio');
     final request = http.MultipartRequest('POST', uri);
 
     request.fields['user_generation'] = userGeneration;
     request.fields['user_vibe'] = userVibe;
+    request.fields['preferred_language'] = preferredLanguage;
 
     request.files.add(
       await http.MultipartFile.fromPath(

@@ -7,4 +7,3 @@ dotenv
 pillow
 python-multipart
 firebase-admin
-qrcode[pil]

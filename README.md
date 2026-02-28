@@ -1,3 +1,68 @@
+# VerbaBridge
+
+A small Flutter app with a Python backend that provides AI/caching services and serves static UI for demos.
+
+## Project structure
+
+- `lib/` - Flutter app source (screens, tabs, services)
+- `server/` - Python backend (main.py, core modules, static assets)
+- `android/`, `ios/`, `windows/` - platform-specific build files
+
+## Tech Stack
+
+- Mobile: Flutter (Dart)
+- Backend: Python (FastAPI + Uvicorn)
+- Auth & DB: Firebase (Authentication, Firestore)
+- Integrations: Google Sign-In, device camera plugins (e.g. mobile_scanner)
+- Caching: local JSON cache (`server/cache_data/`)
+
+## Mermaid: Tech Stack Diagram
+
+```mermaid
+graph LR
+  subgraph Mobile_App[Mobile App]
+    FlutterApp[Flutter App (Dart)]
+    FlutterApp -->|Auth & DB| Firebase[Firebase (Auth, Firestore)]
+    FlutterApp -->|Sign-in| GoogleSignIn[Google Sign-In]
+    FlutterApp -->|Camera/Scanner| MobileScanner[mobile_scanner plugin]
+  end
+
+  subgraph Backend[Backend]
+    FastAPI[FastAPI (Python)]
+    FastAPI -->|Serves| Static[Static files (server/static/)]
+    FastAPI -->|Uses| AI[AI Module (server/core/ai.py)]
+    FastAPI -->|Caches| Cache[Cache Layer (server/cache.py)]
+    FastAPI -->|Runs on| Uvicorn[Uvicorn]
+  end
+
+  Firebase -->|Service Account| Firestore[Firestore]
+  FlutterApp -->|HTTP/API calls| FastAPI
+  Cache -->|JSON files| CacheData[server/cache_data/*.json]
+  AI -->|Loads| CacheData
+
+  style Mobile_App fill:#f9f,stroke:#333,stroke-width:1px
+  style Backend fill:#9ff,stroke:#333,stroke-width:1px
+```
+
+## Quick run (local)
+
+- Run backend (from `server/`):
+
+```powershell
+cd server
+uvicorn main:app --reload
+```
+
+- Run Flutter app (from project root):
+
+```powershell
+flutter run
+```
+
+## Notes
+
+- Backend stores cached API responses in `server/cache_data/` as JSON.
+- `server/serviceAccountKey.json` is used to authenticate with Firebase for server-side operations.
 # 🌉 VerbaBridge (Backend)
 
 **The Linguistic Bridge for Cultural Preservation & Digital Inclusion**
