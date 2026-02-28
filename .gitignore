@@ -47,7 +47,7 @@ app.*.map.json
 # Python / Backend Secrets
 serviceAccountKey.json
 __pycache__/
-cache_data/
+server/cache_data/
 .env
 
 # Flutter / Frontend

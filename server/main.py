@@ -81,34 +81,33 @@ async def home():
 @app.post("/generate_analogy")
 async def api_generate_analogy(data: AnalogyInput):
     """Takes a slang word and generates personalized cultural analogies."""
-    logger.info(f"🧠 Analogy Request: '{data.slang_text}' | Gen: {data.user_generation} | Vibe: {data.user_vibe}")
+    logger.info(f"🧠 Analogy Request: '{data.slang_text}' | Gen: {data.user_generation} | Vibe: {data.user_vibe} | Lang: {data.preferred_language}")
 
     # Check cache first
-    cache_key = f"{data.slang_text}|{data.user_generation}|{data.user_vibe}"
+    cache_key = f"{data.slang_text}|{data.user_generation}|{data.user_vibe}|{data.preferred_language}"
     cached_data = cache.get(cache_key)
     if cached_data:
         logger.info("⚡ CACHE HIT")
         return {"status": "success", "source": "cache", **cached_data}
 
     try:
-        result = await generate_analogy(data.slang_text, data.user_generation, data.user_vibe)
+        result = await generate_analogy(data.slang_text, data.user_generation, data.user_vibe, data.preferred_language)
+        # Cache the result
+        cache.set(cache_key, result)
+        return {"status": "success", "source": "gemini", **result}
     except Exception as e:
         logger.error(f"Analogy Generation Error: {e}")
         raise HTTPException(status_code=500, detail="Analogy generation failed")
 
-    # Cache the result
-    cache.set(cache_key, result)
-
-    return {"status": "success", "source": "gemini", **result}
 
 # 2. LIVE TRANSLATE (Slang -> Polite Senior-Friendly Language)
 @app.post("/live_translate")
 async def api_live_translate(data: LiveTranslateInput):
     """Translates slang text into polite, senior-friendly language."""
-    logger.info(f"🔴 Live Translate: '{data.text}' | Vibe: {data.user_vibe}")
+    logger.info(f"🔴 Live Translate: '{data.text}' | Vibe: {data.user_vibe} | Lang: {data.preferred_language}")
 
     try:
-        result = await live_translate(data.text, data.user_vibe)
+        result = await live_translate(data.text, data.user_vibe, data.preferred_language)
         return {"status": "success", **result}
     except Exception as e:
         logger.error(f"Live Translation Error: {e}")
@@ -180,7 +179,7 @@ async def api_live_translate_audio(
             
         logger.info(f"Audio Size: {len(audio_bytes)} bytes | Forced MIME: {mime_type}")
         
-        result = await live_translate_audio(audio_bytes, mime_type, user_vibe)
+        result = await live_translate_audio(audio_bytes, mime_type, user_vibe, preferred_language)
         return {"status": "success", **result}
         
     except Exception as e:
@@ -204,7 +203,7 @@ async def api_generate_analogy_audio(
         if not mime_type or mime_type in ["application/octet-stream", ""]:
             mime_type = "audio/mp4" 
             
-        result = await generate_analogy_audio(audio_bytes, mime_type, user_generation, user_vibe)
+        result = await generate_analogy_audio(audio_bytes, mime_type, user_generation, user_vibe, preferred_language)
         return {"status": "success", **result}
         
     except Exception as e:

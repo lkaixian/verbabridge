@@ -29,12 +29,17 @@ class VerbaBridgeApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.light,
         primarySwatch: Colors.orange,
-        scaffoldBackgroundColor: Colors.grey.shade100,
+        primaryColor: const Color(0xFFFF6B35),
+        scaffoldBackgroundColor: const Color(0xFFF8F7F4),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.deepOrangeAccent,
+          backgroundColor: Color(0xFFFF6B35),
           foregroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
+        ),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Color(0xFF2D2D2D)),
+          bodyMedium: TextStyle(color: Color(0xFF2D2D2D)),
         ),
       ),
       home: const HomeScreen(),
