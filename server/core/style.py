@@ -48,7 +48,7 @@ async def live_translate(live_text: str, user_vibe: str, preferred_language: str
         )
 
         response = client.models.generate_content(
-            model="gemini-3.0-flash-preview",
+            model="gemini-3-flash-preview",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -100,7 +100,7 @@ async def live_translate_audio(audio_bytes: bytes, mime_type: str, user_vibe: st
         )
 
         response = client.models.generate_content(
-            model="gemini-3.0-flash-preview", # Flash models are incredibly fast at audio
+            model="gemini-3-flash-preview", # Flash models are incredibly fast at audio
             contents=[
                 types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
                 prompt
